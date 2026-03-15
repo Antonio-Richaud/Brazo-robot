@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 
 const DEFAULT_STATE = {
@@ -64,7 +64,7 @@ function Segment({ length, thickness = 0.18, color = '#93c5fd' }) {
   )
 }
 
-function Gripper({ open = 0.09 }) {
+function Gripper({ open = 0.09, topRef, bottomRef }) {
   return (
     <group>
       {/* cuerpo central */}
@@ -73,20 +73,20 @@ function Gripper({ open = 0.09 }) {
         <meshBasicMaterial wireframe color="#fca5a5" />
       </mesh>
 
-      {/* marcador asimétrico para que se note el roll de muñeca 2 */}
+      {/* marcador asimétrico para que se note el roll */}
       <mesh position={[0.06, 0, 0.10]}>
         <boxGeometry args={[0.10, 0.05, 0.05]} />
         <meshBasicMaterial wireframe color="#fb7185" />
       </mesh>
 
       {/* dedo superior */}
-      <mesh position={[0.26, open, 0]} rotation={[0, 0, degToRad(-16)]}>
+      <mesh ref={topRef} position={[0.26, open, 0]} rotation={[0, 0, degToRad(-16)]}>
         <boxGeometry args={[0.10, 0.24, 0.08]} />
         <meshBasicMaterial wireframe color="#fca5a5" />
       </mesh>
 
       {/* dedo inferior */}
-      <mesh position={[0.26, -open, 0]} rotation={[0, 0, degToRad(16)]}>
+      <mesh ref={bottomRef} position={[0.26, -open, 0]} rotation={[0, 0, degToRad(16)]}>
         <boxGeometry args={[0.10, 0.24, 0.08]} />
         <meshBasicMaterial wireframe color="#fca5a5" />
       </mesh>
@@ -94,7 +94,11 @@ function Gripper({ open = 0.09 }) {
   )
 }
 
-function RobotArm({ servos }) {
+function lerp(a, b, t) {
+  return a + (b - a) * t
+}
+
+function buildRobotPose(servos) {
   const home = {
     base: 90,
     hombro: 50,
@@ -112,8 +116,8 @@ function RobotArm({ servos }) {
   const garraRaw = servoCurrent(servos, 'garra', home.garra)
 
   // Longitudes visuales
-  const upperArmLen = 2.35   // brazo un poco más corto
-  const foreArmLen = 1.65    // antebrazo como ya te gustó
+  const upperArmLen = 2.35
+  const foreArmLen = 1.65
   const wristLen = 0.06
 
   // Base y brazo principal
@@ -121,52 +125,138 @@ function RobotArm({ servos }) {
   const hombro = degToRad(62 + (hombroDeg - home.hombro))
   const codo = degToRad(118 + (codoDeg - home.codo) * 1.20)
 
-  // Muñeca 1
-  // Home visual = límite inferior
-  // Desde ahí solo debe subir
+  // Muñeca 1:
+  // home visual = límite inferior, desde ahí solo sube
   const wrist1LiftDelta = Math.max(0, muneca1Deg - home.muneca1)
   const muneca1 = degToRad(150 - wrist1LiftDelta * 1.10)
 
-  // Muñeca 2
-  // Roll de la garra sobre su propio eje
+  // Muñeca 2:
+  // roll de la garra sobre su propio eje
   const muneca2 = degToRad((muneca2Deg - home.muneca2) * 1.0)
 
   const garraOpen = 0.05 + ((garraRaw - 20) / 120) * 0.14
+
+  return {
+    upperArmLen,
+    foreArmLen,
+    wristLen,
+    base,
+    hombro,
+    codo,
+    muneca1,
+    muneca2,
+    garraOpen,
+  }
+}
+
+function RobotArm({ servos }) {
+  const baseYawRef = useRef()
+  const shoulderRef = useRef()
+  const elbowRef = useRef()
+  const wrist1Ref = useRef()
+  const wrist2Ref = useRef()
+  const fingerTopRef = useRef()
+  const fingerBottomRef = useRef()
+
+  const targetPoseRef = useRef(buildRobotPose(servos))
+  const visualPoseRef = useRef(buildRobotPose(servos))
+
+  useEffect(() => {
+    targetPoseRef.current = buildRobotPose(servos)
+  }, [servos])
+
+  useFrame((_, delta) => {
+    const target = targetPoseRef.current
+    const visual = visualPoseRef.current
+
+    // Entre más alto, más “responsivo”.
+    // 10-14 se siente bastante bien.
+    const alpha = 1 - Math.exp(-12 * delta)
+
+    visual.base = lerp(visual.base, target.base, alpha)
+    visual.hombro = lerp(visual.hombro, target.hombro, alpha)
+    visual.codo = lerp(visual.codo, target.codo, alpha)
+    visual.muneca1 = lerp(visual.muneca1, target.muneca1, alpha)
+    visual.muneca2 = lerp(visual.muneca2, target.muneca2, alpha)
+    visual.garraOpen = lerp(visual.garraOpen, target.garraOpen, alpha)
+
+    if (baseYawRef.current) {
+      baseYawRef.current.rotation.y = visual.base
+    }
+
+    if (shoulderRef.current) {
+      shoulderRef.current.rotation.z = visual.hombro
+    }
+
+    if (elbowRef.current) {
+      elbowRef.current.rotation.z = visual.codo
+    }
+
+    if (wrist1Ref.current) {
+      wrist1Ref.current.rotation.z = visual.muneca1
+    }
+
+    if (wrist2Ref.current) {
+      wrist2Ref.current.rotation.x = visual.muneca2
+    }
+
+    if (fingerTopRef.current) {
+      fingerTopRef.current.position.y = visual.garraOpen
+    }
+
+    if (fingerBottomRef.current) {
+      fingerBottomRef.current.position.y = -visual.garraOpen
+    }
+  })
+
+  const initial = visualPoseRef.current
 
   return (
     <group position={[0, -1.15, 0]}>
       <gridHelper args={[20, 20, '#1d4ed8', '#1f2937']} position={[0, -0.01, 0]} />
       <axesHelper args={[1.5]} position={[0, 0, 0]} />
 
-      <mesh position={[0, 0.18, 0]} rotation={[0, base, 0]}>
-        <cylinderGeometry args={[1.0, 1.15, 0.36, 28, 1, true]} />
-        <meshBasicMaterial wireframe color="#38bdf8" />
-      </mesh>
+      <group ref={baseYawRef} rotation={[0, initial.base, 0]}>
+        {/* Base */}
+        <mesh position={[0, 0.18, 0]}>
+          <cylinderGeometry args={[1.0, 1.15, 0.36, 28, 1, true]} />
+          <meshBasicMaterial wireframe color="#38bdf8" />
+        </mesh>
 
-      <group position={[0, 0.38, 0]} rotation={[0, base, 0]}>
-        <Joint size={0.18} color="#67e8f9" />
+        {/* Torre / hombro */}
+        <group position={[0, 0.38, 0]}>
+          <Joint size={0.18} color="#67e8f9" />
 
-        <group rotation={[0, 0, hombro]}>
-          <Segment length={upperArmLen} thickness={0.22} color="#60a5fa" />
+          <group ref={shoulderRef} rotation={[0, 0, initial.hombro]}>
+            <Segment length={initial.upperArmLen} thickness={0.22} color="#60a5fa" />
 
-          <group position={[upperArmLen, 0, 0]}>
-            <Joint size={0.17} color="#a5f3fc" />
+            {/* Codo */}
+            <group position={[initial.upperArmLen, 0, 0]}>
+              <Joint size={0.17} color="#a5f3fc" />
 
-            <group rotation={[0, 0, codo]}>
-              <Segment length={foreArmLen} thickness={0.18} color="#34d399" />
+              <group ref={elbowRef} rotation={[0, 0, initial.codo]}>
+                <Segment length={initial.foreArmLen} thickness={0.18} color="#34d399" />
 
-              <group position={[foreArmLen, 0, 0]}>
-                <Joint size={0.12} color="#fde68a" />
+                {/* Muñeca */}
+                <group position={[initial.foreArmLen, 0, 0]}>
+                  <Joint size={0.12} color="#fde68a" />
 
-                <group rotation={[0, 0, muneca1]}>
-                  <Segment length={wristLen} thickness={0.10} color="#fbbf24" />
+                  {/* Muñeca 1 */}
+                  <group ref={wrist1Ref} rotation={[0, 0, initial.muneca1]}>
+                    <Segment length={initial.wristLen} thickness={0.10} color="#fbbf24" />
 
-                  <group position={[wristLen, 0, 0]}>
-                    <Joint size={0.10} color="#f59e0b" />
+                    {/* Muñeca 2 */}
+                    <group position={[initial.wristLen, 0, 0]}>
+                      <Joint size={0.10} color="#f59e0b" />
 
-                    <group rotation={[0, 0, degToRad(-58)]}>
-                      <group rotation={[muneca2, 0, 0]}>
-                        <Gripper open={garraOpen} />
+                      <group rotation={[0, 0, degToRad(-58)]}>
+                        <group ref={wrist2Ref} rotation={[initial.muneca2, 0, 0]}>
+                          <Gripper
+                            open={initial.garraOpen}
+                            topRef={fingerTopRef}
+                            bottomRef={fingerBottomRef}
+                          />
+                        </group>
                       </group>
                     </group>
                   </group>

@@ -62,13 +62,13 @@ def main():
                 state.update_servo_target(servo_id, int(round(angle)))
                 return
 
-        ws_server = WebSocketStateServer(
-            state=state,
-            command_handler=handle_ws_command,
-            host="127.0.0.1",
-            port=8765,
-            publish_interval=0.10,
-        )
+ws_server = WebSocketStateServer(
+    state=state,
+    command_handler=handle_ws_command,
+    host="127.0.0.1",
+    port=8765,
+    publish_interval=0.03,
+)
         ws_server.start()
 
         last_loop = time.time()
