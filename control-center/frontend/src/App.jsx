@@ -55,24 +55,39 @@ function Joint({ size = 0.18, color = '#67e8f9' }) {
   )
 }
 
-function Segment({ length, thickness = 0.22, color = '#93c5fd' }) {
+function Segment({ length, thickness = 0.18, color = '#93c5fd' }) {
   return (
-    <mesh position={[0, length / 2, 0]}>
-      <boxGeometry args={[thickness, length, thickness]} />
+    <mesh position={[length / 2, 0, 0]}>
+      <boxGeometry args={[length, thickness, thickness]} />
       <meshBasicMaterial wireframe color={color} />
     </mesh>
   )
 }
 
-function Gripper({ open = 0.16 }) {
+function Gripper({ open = 0.09 }) {
   return (
     <group>
-      <mesh position={[0, 0.28, open]}>
-        <boxGeometry args={[0.12, 0.56, 0.12]} />
+      {/* cuerpo central */}
+      <mesh position={[0.11, 0, 0]}>
+        <boxGeometry args={[0.22, 0.12, 0.12]} />
         <meshBasicMaterial wireframe color="#fca5a5" />
       </mesh>
-      <mesh position={[0, 0.28, -open]}>
-        <boxGeometry args={[0.12, 0.56, 0.12]} />
+
+      {/* marcador asimétrico para que se note el roll de muñeca 2 */}
+      <mesh position={[0.06, 0, 0.10]}>
+        <boxGeometry args={[0.10, 0.05, 0.05]} />
+        <meshBasicMaterial wireframe color="#fb7185" />
+      </mesh>
+
+      {/* dedo superior */}
+      <mesh position={[0.26, open, 0]} rotation={[0, 0, degToRad(-16)]}>
+        <boxGeometry args={[0.10, 0.24, 0.08]} />
+        <meshBasicMaterial wireframe color="#fca5a5" />
+      </mesh>
+
+      {/* dedo inferior */}
+      <mesh position={[0.26, -open, 0]} rotation={[0, 0, degToRad(16)]}>
+        <boxGeometry args={[0.10, 0.24, 0.08]} />
         <meshBasicMaterial wireframe color="#fca5a5" />
       </mesh>
     </group>
@@ -80,17 +95,46 @@ function Gripper({ open = 0.16 }) {
 }
 
 function RobotArm({ servos }) {
-  const base = degToRad(servoCurrent(servos, 'base', 90) - 90)
-  const hombro = degToRad(servoCurrent(servos, 'hombro', 50) - 90)
-  const codo = degToRad(180 - servoCurrent(servos, 'codo', 165))
-  const muneca1 = degToRad(servoCurrent(servos, 'muneca1', 10) - 90)
-  const muneca2 = degToRad(servoCurrent(servos, 'muneca2', 170) - 90)
+  const home = {
+    base: 90,
+    hombro: 50,
+    codo: 165,
+    muneca1: 10,
+    muneca2: 170,
+    garra: 40,
+  }
 
-  const garraRaw = servoCurrent(servos, 'garra', 40)
-  const garraOpen = 0.06 + ((garraRaw - 20) / 120) * 0.30
+  const baseDeg = servoCurrent(servos, 'base', home.base)
+  const hombroDeg = servoCurrent(servos, 'hombro', home.hombro)
+  const codoDeg = servoCurrent(servos, 'codo', home.codo)
+  const muneca1Deg = servoCurrent(servos, 'muneca1', home.muneca1)
+  const muneca2Deg = servoCurrent(servos, 'muneca2', home.muneca2)
+  const garraRaw = servoCurrent(servos, 'garra', home.garra)
+
+  // Longitudes visuales
+  const upperArmLen = 2.35   // brazo un poco más corto
+  const foreArmLen = 1.65    // antebrazo como ya te gustó
+  const wristLen = 0.06
+
+  // Base y brazo principal
+  const base = degToRad(baseDeg - home.base)
+  const hombro = degToRad(62 + (hombroDeg - home.hombro))
+  const codo = degToRad(118 + (codoDeg - home.codo) * 1.20)
+
+  // Muñeca 1
+  // Home visual = límite inferior
+  // Desde ahí solo debe subir
+  const wrist1LiftDelta = Math.max(0, muneca1Deg - home.muneca1)
+  const muneca1 = degToRad(150 - wrist1LiftDelta * 1.10)
+
+  // Muñeca 2
+  // Roll de la garra sobre su propio eje
+  const muneca2 = degToRad((muneca2Deg - home.muneca2) * 1.0)
+
+  const garraOpen = 0.05 + ((garraRaw - 20) / 120) * 0.14
 
   return (
-    <group position={[0, -1.35, 0]}>
+    <group position={[0, -1.15, 0]}>
       <gridHelper args={[20, 20, '#1d4ed8', '#1f2937']} position={[0, -0.01, 0]} />
       <axesHelper args={[1.5]} position={[0, 0, 0]} />
 
@@ -99,22 +143,31 @@ function RobotArm({ servos }) {
         <meshBasicMaterial wireframe color="#38bdf8" />
       </mesh>
 
-      <group position={[0, 0.36, 0]} rotation={[0, base, 0]}>
-        <Joint size={0.18} />
+      <group position={[0, 0.38, 0]} rotation={[0, base, 0]}>
+        <Joint size={0.18} color="#67e8f9" />
+
         <group rotation={[0, 0, hombro]}>
-          <Segment length={3.0} color="#60a5fa" />
-          <group position={[0, 3.0, 0]}>
-            <Joint />
+          <Segment length={upperArmLen} thickness={0.22} color="#60a5fa" />
+
+          <group position={[upperArmLen, 0, 0]}>
+            <Joint size={0.17} color="#a5f3fc" />
+
             <group rotation={[0, 0, codo]}>
-              <Segment length={2.4} color="#34d399" />
-              <group position={[0, 2.4, 0]}>
-                <Joint />
+              <Segment length={foreArmLen} thickness={0.18} color="#34d399" />
+
+              <group position={[foreArmLen, 0, 0]}>
+                <Joint size={0.12} color="#fde68a" />
+
                 <group rotation={[0, 0, muneca1]}>
-                  <Segment length={1.35} thickness={0.18} color="#fbbf24" />
-                  <group position={[0, 1.35, 0]} rotation={[0, muneca2, 0]}>
-                    <Joint size={0.14} color="#f59e0b" />
-                    <group position={[0, 0.22, 0]}>
-                      <Gripper open={garraOpen} />
+                  <Segment length={wristLen} thickness={0.10} color="#fbbf24" />
+
+                  <group position={[wristLen, 0, 0]}>
+                    <Joint size={0.10} color="#f59e0b" />
+
+                    <group rotation={[0, 0, degToRad(-58)]}>
+                      <group rotation={[muneca2, 0, 0]}>
+                        <Gripper open={garraOpen} />
+                      </group>
                     </group>
                   </group>
                 </group>

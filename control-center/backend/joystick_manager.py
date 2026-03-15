@@ -69,6 +69,20 @@ class JoystickManager:
         self.last_buttons = {}
         self.manual_enabled = True
 
+        print("\n[JOYSTICK] mapeo actual:")
+        print("  Axis 0                 -> base")
+        print("  Axis 1                 -> hombro")
+        print("  Button 2               -> codo hacia arriba")
+        print("  Button 3               -> codo hacia abajo")
+        print("  Hat arriba/abajo       -> muneca1")
+        print("  Hat izquierda/derecha  -> muneca2")
+        print("  Button 0 (gatillo)     -> cerrar garra")
+        print("  Button 1               -> abrir garra")
+        print("  Button 4               -> home")
+        print("  Button 5               -> saludo")
+        print("  Button 6               -> stop")
+        print("  Button 7               -> salir\n")
+
     def _calibrate(self):
         print(f"[JOYSTICK] calibrando durante {CALIBRATION_SECONDS:.1f} s...")
         axis_count = self.js.get_numaxes()
@@ -140,7 +154,7 @@ class JoystickManager:
             self.state.set_mode("manual")
 
         if b7 and not self.last_buttons.get("b7", 0):
-            raise KeyboardInterrupt("Salida solicitada desde boton rapido 4")
+            raise KeyboardInterrupt("Salida solicitada desde button 7")
 
         self.last_buttons["b4"] = b4
         self.last_buttons["b5"] = b5
@@ -148,25 +162,25 @@ class JoystickManager:
         self.last_buttons["b7"] = b7
 
         if self.manual_enabled:
-            # base invertida
+            # Base: invertida
             self.targets[1] += (-ax0) * BASE_RATE * dt
 
-            # hombro invertido para sentido natural
+            # Hombro / torre: invertido para sentido natural
             self.targets[2] += (-ax1) * HOMBRO_RATE * dt
 
-            # codo con botones 3 y 4 fisicos = button 2 y 3
+            # Codo
             if b2:
                 self.targets[3] -= CODO_RATE * dt
             if b3:
                 self.targets[3] += CODO_RATE * dt
 
-            # muñeca1 con hat izquierda/derecha
-            self.targets[4] += hat_x * MUNECA1_RATE * dt
+            # Muñeca 1: subir / bajar con hat arriba-abajo
+            self.targets[4] += hat_y * MUNECA1_RATE * dt
 
-            # muñeca2 con hat arriba/abajo invertido
-            self.targets[5] += (-hat_y) * MUNECA2_RATE * dt
+            # Muñeca 2: rotar garra con hat izquierda-derecha
+            self.targets[5] += hat_x * MUNECA2_RATE * dt
 
-            # garra
+            # Garra
             if b0:
                 self.targets[6] -= GARRA_RATE * dt  # cerrar
             if b1:
