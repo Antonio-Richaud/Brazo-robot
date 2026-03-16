@@ -81,8 +81,8 @@ class JoystickManager:
         print("  Button 4               -> home")
         print("  Button 5               -> saludo")
         print("  Button 6               -> stop")
-        print("  Button 7               -> salir\n")
-
+        print("  Button 7               -> rutina")
+        
     def _calibrate(self):
         print(f"[JOYSTICK] calibrando durante {CALIBRATION_SECONDS:.1f} s...")
         axis_count = self.js.get_numaxes()
@@ -154,7 +154,9 @@ class JoystickManager:
             self.state.set_mode("manual")
 
         if b7 and not self.last_buttons.get("b7", 0):
-            raise KeyboardInterrupt("Salida solicitada desde button 7")
+            self.serial_manager.send("rutina")
+            self.manual_enabled = False
+            self.state.set_mode("rutina")
 
         self.last_buttons["b4"] = b4
         self.last_buttons["b5"] = b5

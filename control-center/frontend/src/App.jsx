@@ -285,7 +285,7 @@ export default function App() {
       try {
         const data = JSON.parse(event.data)
         setRobot(data)
-      } catch {}
+      } catch { }
     }
 
     return () => ws.close()
@@ -325,19 +325,28 @@ export default function App() {
             <StatRow label="Activo" value={activeName || 'ninguno'} />
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => send({ action: 'home' })}
               className="rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-sm font-medium transition hover:bg-cyan-400/20"
             >
               Home
             </button>
+
             <button
               onClick={() => send({ action: 'saludo' })}
               className="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-sm font-medium transition hover:bg-emerald-400/20"
             >
               Saludo
             </button>
+
+            <button
+              onClick={() => send({ action: 'rutina' })}
+              className="rounded-2xl border border-fuchsia-400/30 bg-fuchsia-400/10 px-3 py-2 text-sm font-medium transition hover:bg-fuchsia-400/20"
+            >
+              Rutina
+            </button>
+
             <button
               onClick={() => send({ action: 'stop' })}
               className="rounded-2xl border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-sm font-medium transition hover:bg-rose-400/20"
@@ -361,11 +370,10 @@ export default function App() {
                   {(robot.joystick?.buttons ?? []).map((b, i) => (
                     <div
                       key={i}
-                      className={`rounded-lg border px-2 py-1 text-center font-mono text-xs ${
-                        b
-                          ? 'border-cyan-300/50 bg-cyan-400/20 text-cyan-200'
-                          : 'border-white/10 bg-white/5 text-slate-400'
-                      }`}
+                      className={`rounded-lg border px-2 py-1 text-center font-mono text-xs ${b
+                        ? 'border-cyan-300/50 bg-cyan-400/20 text-cyan-200'
+                        : 'border-white/10 bg-white/5 text-slate-400'
+                        }`}
                     >
                       {i}:{b}
                     </div>
@@ -425,11 +433,10 @@ export default function App() {
               return (
                 <div
                   key={name}
-                  className={`rounded-2xl border p-3 transition ${
-                    isActive
-                      ? 'border-cyan-300/40 bg-cyan-400/10 shadow-lg shadow-cyan-500/10'
-                      : 'border-white/10 bg-white/5'
-                  }`}
+                  className={`rounded-2xl border p-3 transition ${isActive
+                    ? 'border-cyan-300/40 bg-cyan-400/10 shadow-lg shadow-cyan-500/10'
+                    : 'border-white/10 bg-white/5'
+                    }`}
                 >
                   <div className="mb-2 flex items-center justify-between">
                     <div>

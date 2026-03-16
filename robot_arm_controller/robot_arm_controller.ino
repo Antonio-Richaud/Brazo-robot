@@ -11,6 +11,7 @@ const uint8_t SERVO_COUNT = 6;
 
 const uint16_t MOTION_UPDATE_MS = 10;
 
+// Suavidad para control manual
 const float MAX_SPEED_DEG_PER_SEC = 85.0f;
 const float MAX_ACCEL_DEG_PER_SEC2 = 260.0f;
 const float POSITION_EPS = 0.20f;
@@ -29,6 +30,7 @@ struct ServoAxis {
   float velocity;
 };
 
+// Home real del robot
 ServoAxis servos[SERVO_COUNT] = {
   {"base",    0, 10, 170, 500, 2500,  90,  90.0f,  90.0f, 0.0f},
   {"hombro",  1, 15, 165, 500, 2500,  50,  50.0f,  50.0f, 0.0f},
@@ -41,14 +43,24 @@ ServoAxis servos[SERVO_COUNT] = {
 unsigned long lastMotionUpdate = 0;
 String inputLine = "";
 
+// -------------------------------------------------
+// Coreografías
+// -------------------------------------------------
 enum ChoreoPhase {
   CHOREO_IDLE,
   CHOREO_MOVING,
   CHOREO_HOLDING
 };
 
+enum SequenceType {
+  SEQ_NONE,
+  SEQ_SALUDO,
+  SEQ_RUTINA
+};
+
 bool choreoActive = false;
 ChoreoPhase choreoPhase = CHOREO_IDLE;
+SequenceType activeSequence = SEQ_NONE;
 uint8_t choreoStep = 0;
 unsigned long choreoPhaseStart = 0;
 float choreoStartAngles[SERVO_COUNT];
@@ -59,12 +71,32 @@ struct ChoreoPose {
   unsigned long holdMs;
 };
 
+// Saludo existente
 ChoreoPose saludoPoses[] = {
   { {  90,  60,  90,  90, 100,  40 }, 2600, 450 },
   { {  90,  50, 165,  10, 170,  40 }, 2800, 150 }
 };
 
+// Rutina nueva basada en tus capturas 1 a 6, terminando en home
+ChoreoPose rutinaPoses[] = {
+  // 1
+  { { 123, 132, 102,  95,  77,  81 }, 2400, 220 },
+  // 2
+  { { 123, 132, 102,  95,  77,  20 },  950, 160 },
+  // 3
+  { { 123,  57, 165,  95,  77,  20 }, 2300, 220 },
+  // 4
+  { {  51,  63, 165,  95,  77,  20 }, 1900, 220 },
+  // 5
+  { {  50, 139,  86,  95,  77,  20 }, 2400, 220 },
+  // 6
+  { {  50, 139,  86,  95,  77,  92 }, 1000, 180 },
+  // Regreso a home
+  { {  90,  50, 165,  10, 170,  40 }, 2800, 180 }
+};
+
 const uint8_t SALUDO_POSE_COUNT = sizeof(saludoPoses) / sizeof(saludoPoses[0]);
+const uint8_t RUTINA_POSE_COUNT = sizeof(rutinaPoses) / sizeof(rutinaPoses[0]);
 
 float clampFloat(float value, float minValue, float maxValue) {
   if (value < minValue) return minValue;
@@ -146,6 +178,7 @@ void printHelp() {
   Serial.println("status                 -> ver estado");
   Serial.println("home                   -> mover todos a home");
   Serial.println("saludo                 -> ejecutar saludo suave");
+  Serial.println("rutina                 -> ejecutar rutina suave");
   Serial.println("stop                   -> detener coreografia y volver a home");
   Serial.println("s <id> <angulo>        -> mover servo (1..6) a un angulo");
   Serial.println("d <id> <delta>         -> mover servo relativo");
@@ -168,6 +201,18 @@ float smootherStep(float t) {
   return t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f);
 }
 
+ChoreoPose* getActivePoseArray() {
+  if (activeSequence == SEQ_SALUDO) return saludoPoses;
+  if (activeSequence == SEQ_RUTINA) return rutinaPoses;
+  return nullptr;
+}
+
+uint8_t getActivePoseCount() {
+  if (activeSequence == SEQ_SALUDO) return SALUDO_POSE_COUNT;
+  if (activeSequence == SEQ_RUTINA) return RUTINA_POSE_COUNT;
+  return 0;
+}
+
 void beginChoreoMove(uint8_t stepIndex) {
   choreoStep = stepIndex;
   choreoPhase = CHOREO_MOVING;
@@ -179,18 +224,35 @@ void beginChoreoMove(uint8_t stepIndex) {
   }
 }
 
-void startSaludo() {
+void startSequence(SequenceType seq) {
+  activeSequence = seq;
   choreoActive = true;
   beginChoreoMove(0);
-  Serial.println("OK -> saludo iniciado");
+
+  if (seq == SEQ_SALUDO) {
+    Serial.println("OK -> saludo iniciado");
+  } else if (seq == SEQ_RUTINA) {
+    Serial.println("OK -> rutina iniciada");
+  }
+}
+
+void startSaludo() {
+  startSequence(SEQ_SALUDO);
+}
+
+void startRutina() {
+  startSequence(SEQ_RUTINA);
 }
 
 void stopChoreo() {
   choreoActive = false;
   choreoPhase = CHOREO_IDLE;
+  activeSequence = SEQ_NONE;
+
   for (uint8_t i = 0; i < SERVO_COUNT; i++) {
     servos[i].velocity = 0.0f;
   }
+
   moveToHome();
   Serial.println("OK -> coreografia detenida, regresando a home");
 }
@@ -198,10 +260,14 @@ void stopChoreo() {
 void updateChoreo() {
   if (!choreoActive) return;
 
+  ChoreoPose* poses = getActivePoseArray();
+  uint8_t poseCount = getActivePoseCount();
+  if (!poses || poseCount == 0) return;
+
   unsigned long now = millis();
 
   if (choreoPhase == CHOREO_MOVING) {
-    unsigned long moveMs = saludoPoses[choreoStep].moveMs;
+    unsigned long moveMs = poses[choreoStep].moveMs;
     float t = 1.0f;
 
     if (moveMs > 0) {
@@ -212,7 +278,7 @@ void updateChoreo() {
     float e = smootherStep(t);
 
     for (uint8_t i = 0; i < SERVO_COUNT; i++) {
-      float targetAngle = (float)saludoPoses[choreoStep].angles[i];
+      float targetAngle = (float)poses[choreoStep].angles[i];
       targetAngle = clampFloat(targetAngle, servos[i].minAngle, servos[i].maxAngle);
 
       servos[i].current = choreoStartAngles[i] + (targetAngle - choreoStartAngles[i]) * e;
@@ -222,7 +288,7 @@ void updateChoreo() {
 
     if (t >= 1.0f) {
       for (uint8_t i = 0; i < SERVO_COUNT; i++) {
-        servos[i].current = clampFloat((float)saludoPoses[choreoStep].angles[i], servos[i].minAngle, servos[i].maxAngle);
+        servos[i].current = clampFloat((float)poses[choreoStep].angles[i], servos[i].minAngle, servos[i].maxAngle);
         servos[i].target = servos[i].current;
         servos[i].velocity = 0.0f;
       }
@@ -234,14 +300,23 @@ void updateChoreo() {
   }
 
   if (choreoPhase == CHOREO_HOLDING) {
-    if (now - choreoPhaseStart >= saludoPoses[choreoStep].holdMs) {
+    if (now - choreoPhaseStart >= poses[choreoStep].holdMs) {
       choreoStep++;
 
-      if (choreoStep >= SALUDO_POSE_COUNT) {
+      if (choreoStep >= poseCount) {
         choreoActive = false;
         choreoPhase = CHOREO_IDLE;
+
+        SequenceType endedSequence = activeSequence;
+        activeSequence = SEQ_NONE;
+
         moveToHome();
-        Serial.println("OK -> saludo terminado");
+
+        if (endedSequence == SEQ_SALUDO) {
+          Serial.println("OK -> saludo terminado");
+        } else if (endedSequence == SEQ_RUTINA) {
+          Serial.println("OK -> rutina terminada");
+        }
         return;
       }
 
@@ -326,6 +401,15 @@ void handleCommand(String cmd) {
   if (cmd == "saludo") {
     if (!choreoActive) {
       startSaludo();
+    } else {
+      Serial.println("ERROR: ya hay una coreografia en progreso");
+    }
+    return;
+  }
+
+  if (cmd == "rutina") {
+    if (!choreoActive) {
+      startRutina();
     } else {
       Serial.println("ERROR: ya hay una coreografia en progreso");
     }

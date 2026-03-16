@@ -102,6 +102,10 @@ class SerialManager:
                     self.state.set_mode("saludo")
                 elif "saludo terminado" in line:
                     self.state.set_mode("manual")
+                elif "rutina iniciada" in line:
+                    self.state.set_mode("rutina")
+                elif "rutina terminada" in line:
+                    self.state.set_mode("manual")
                 elif "coreografia detenida" in line:
                     self.state.set_mode("manual")
                 elif "OK -> home" in line:

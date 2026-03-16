@@ -45,6 +45,12 @@ def main():
                 joystick_manager.force_sync_targets()
                 state.set_mode("manual")
                 return
+                
+            if action == "rutina":
+                serial_manager.send("rutina")
+                joystick_manager.manual_enabled = False
+                state.set_mode("rutina")
+                return
 
             if action == "set_servo":
                 servo_id = int(data.get("servo_id"))
