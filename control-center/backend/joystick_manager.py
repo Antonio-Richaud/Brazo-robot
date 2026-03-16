@@ -72,10 +72,10 @@ class JoystickManager:
         print("\n[JOYSTICK] mapeo actual:")
         print("  Axis 0                 -> base")
         print("  Axis 1                 -> hombro")
-        print("  Button 2               -> codo hacia arriba")
-        print("  Button 3               -> codo hacia abajo")
-        print("  Hat arriba/abajo       -> muneca1")
-        print("  Hat izquierda/derecha  -> muneca2")
+        print("  Button 2               -> codo hacia abajo")
+        print("  Button 3               -> codo hacia arriba")
+        print("  Hat izquierda/derecha  -> muneca1 (sube/baja garra)")
+        print("  Hat arriba/abajo       -> muneca2 (gira garra)")
         print("  Button 0 (gatillo)     -> cerrar garra")
         print("  Button 1               -> abrir garra")
         print("  Button 4               -> home")
@@ -162,28 +162,30 @@ class JoystickManager:
         self.last_buttons["b7"] = b7
 
         if self.manual_enabled:
-            # Base: invertida
+            # Base
             self.targets[1] += (-ax0) * BASE_RATE * dt
 
-            # Hombro / torre: invertido para sentido natural
+            # Hombro
             self.targets[2] += (-ax1) * HOMBRO_RATE * dt
 
-            # Codo
-            if b2:
+            # Codo / antebrazo
+            if b2 and not b3:
                 self.targets[3] -= CODO_RATE * dt
-            if b3:
+            elif b3 and not b2:
                 self.targets[3] += CODO_RATE * dt
 
-            # Muñeca 1: subir / bajar con hat arriba-abajo
-            self.targets[4] += hat_y * MUNECA1_RATE * dt
+            # MUÑECA 1 = subir / bajar garra
+            # ahora con hat izquierda/derecha
+            self.targets[4] += hat_x * MUNECA1_RATE * dt
 
-            # Muñeca 2: rotar garra con hat izquierda-derecha
-            self.targets[5] += hat_x * MUNECA2_RATE * dt
+            # MUÑECA 2 = girar garra
+            # ahora con hat arriba/abajo
+            self.targets[5] += (-hat_y) * MUNECA2_RATE * dt
 
             # Garra
-            if b0:
+            if b0 and not b1:
                 self.targets[6] -= GARRA_RATE * dt  # cerrar
-            if b1:
+            elif b1 and not b0:
                 self.targets[6] += GARRA_RATE * dt  # abrir
 
             for sid in self.targets:

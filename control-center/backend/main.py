@@ -62,13 +62,13 @@ def main():
                 state.update_servo_target(servo_id, int(round(angle)))
                 return
 
-ws_server = WebSocketStateServer(
-    state=state,
-    command_handler=handle_ws_command,
-    host="127.0.0.1",
-    port=8765,
-    publish_interval=0.03,
-)
+        ws_server = WebSocketStateServer(
+            state=state,
+            command_handler=handle_ws_command,
+            host="127.0.0.1",
+            port=8765,
+            publish_interval=0.05,
+        )
         ws_server.start()
 
         last_loop = time.time()
@@ -86,6 +86,8 @@ ws_server = WebSocketStateServer(
 
             joystick_manager.tick(dt)
 
+            sent_motion_command = False
+
             if joystick_manager.manual_enabled and (now - last_send >= SEND_INTERVAL):
                 for sid in range(1, 7):
                     angle = int(round(joystick_manager.targets[sid]))
@@ -93,9 +95,13 @@ ws_server = WebSocketStateServer(
                         serial_manager.send(f"s {sid} {angle}")
                         joystick_manager.last_sent[sid] = angle
                         state.update_servo_target(sid, angle)
-                last_send = now
+                        sent_motion_command = True
 
-            if now - last_status_poll >= STATUS_POLL_INTERVAL:
+                if sent_motion_command:
+                    last_send = now
+
+            # Pide status solo si no acabamos de mandar movimiento
+            if (now - last_status_poll >= STATUS_POLL_INTERVAL) and (now - last_send >= 0.20):
                 serial_manager.send("status")
                 last_status_poll = now
 

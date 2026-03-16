@@ -1,12 +1,13 @@
 SERIAL_PORT = "/dev/cu.usbserial-10"
 SERIAL_BAUD = 115200
 
-CALIBRATION_SECONDS = 0.12
+CALIBRATION_SECONDS = 2.0
 DEADZONE = 0.08
 
-STATUS_POLL_INTERVAL = 2.0
-SEND_INTERVAL = 0.06
-LOOP_SLEEP = 0.01
+# Valores más conservadores para no saturar el ESP32
+STATUS_POLL_INTERVAL = 0.60
+SEND_INTERVAL = 0.08
+LOOP_SLEEP = 0.015
 
 # Velocidades en grados por segundo
 BASE_RATE = 70.0

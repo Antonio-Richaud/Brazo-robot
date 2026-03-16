@@ -22,6 +22,7 @@ class SerialManager:
         self._reader_thread = None
         self._running = False
         self._inside_status_block = False
+        self._write_lock = threading.Lock()
 
     def connect(self):
         self.ser = serial.Serial(self.port, self.baud, timeout=0.05)
@@ -48,10 +49,15 @@ class SerialManager:
     def send(self, cmd: str):
         if not self.ser:
             return
+
         try:
-            self.ser.write((cmd + "\n").encode("utf-8"))
-            self.state.add_log(f">> {cmd}")
-            print(f">> {cmd}")
+            with self._write_lock:
+                self.ser.write((cmd + "\n").encode("utf-8"))
+                self.ser.flush()
+
+            if cmd != "status":
+                self.state.add_log(f">> {cmd}")
+                print(f">> {cmd}")
         except Exception as e:
             self.state.add_log(f"[SERIAL ERROR] {e}")
             print(f"[SERIAL ERROR] {e}")
@@ -67,9 +73,6 @@ class SerialManager:
                 if not line:
                     continue
 
-                self.state.add_log(f"ESP32: {line}")
-                print(f"ESP32: {line}")
-
                 if line == "---- STATUS ----":
                     self._inside_status_block = True
                     continue
@@ -77,15 +80,6 @@ class SerialManager:
                 if line == "----------------":
                     self._inside_status_block = False
                     continue
-
-                if "saludo iniciado" in line:
-                    self.state.set_mode("saludo")
-                elif "saludo terminado" in line:
-                    self.state.set_mode("manual")
-                elif "coreografia detenida" in line:
-                    self.state.set_mode("manual")
-                elif "OK -> home" in line:
-                    self.state.set_mode("manual")
 
                 if self._inside_status_block:
                     match = STATUS_RE.match(line)
@@ -99,6 +93,19 @@ class SerialManager:
                             min_angle=int(min_angle),
                             max_angle=int(max_angle),
                         )
+                    continue
+
+                self.state.add_log(f"ESP32: {line}")
+                print(f"ESP32: {line}")
+
+                if "saludo iniciado" in line:
+                    self.state.set_mode("saludo")
+                elif "saludo terminado" in line:
+                    self.state.set_mode("manual")
+                elif "coreografia detenida" in line:
+                    self.state.set_mode("manual")
+                elif "OK -> home" in line:
+                    self.state.set_mode("manual")
 
             except Exception as e:
                 self.state.add_log(f"[SERIAL READ ERROR] {e}")

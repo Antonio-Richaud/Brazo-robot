@@ -46,6 +46,27 @@ function pretty(n) {
   return typeof n === 'number' ? n.toFixed(2) : '0.00'
 }
 
+function lerp(a, b, t) {
+  return a + (b - a) * t
+}
+
+function activeServoName(servos) {
+  let bestName = null
+  let bestDiff = 0
+
+  for (const name of SERVO_ORDER) {
+    const s = servos?.[name]
+    if (!s) continue
+    const diff = Math.abs((s.target ?? 0) - (s.current ?? 0))
+    if (diff > bestDiff) {
+      bestDiff = diff
+      bestName = name
+    }
+  }
+
+  return bestDiff >= 1 ? bestName : null
+}
+
 function Joint({ size = 0.18, color = '#67e8f9' }) {
   return (
     <mesh>
@@ -64,38 +85,30 @@ function Segment({ length, thickness = 0.18, color = '#93c5fd' }) {
   )
 }
 
-function Gripper({ open = 0.09, topRef, bottomRef }) {
+function Gripper({ open = 0.09, topRef, bottomRef, color = '#fca5a5' }) {
   return (
     <group>
-      {/* cuerpo central */}
       <mesh position={[0.11, 0, 0]}>
         <boxGeometry args={[0.22, 0.12, 0.12]} />
-        <meshBasicMaterial wireframe color="#fca5a5" />
+        <meshBasicMaterial wireframe color={color} />
       </mesh>
 
-      {/* marcador asimétrico para que se note el roll */}
       <mesh position={[0.06, 0, 0.10]}>
         <boxGeometry args={[0.10, 0.05, 0.05]} />
         <meshBasicMaterial wireframe color="#fb7185" />
       </mesh>
 
-      {/* dedo superior */}
       <mesh ref={topRef} position={[0.26, open, 0]} rotation={[0, 0, degToRad(-16)]}>
         <boxGeometry args={[0.10, 0.24, 0.08]} />
-        <meshBasicMaterial wireframe color="#fca5a5" />
+        <meshBasicMaterial wireframe color={color} />
       </mesh>
 
-      {/* dedo inferior */}
       <mesh ref={bottomRef} position={[0.26, -open, 0]} rotation={[0, 0, degToRad(16)]}>
         <boxGeometry args={[0.10, 0.24, 0.08]} />
-        <meshBasicMaterial wireframe color="#fca5a5" />
+        <meshBasicMaterial wireframe color={color} />
       </mesh>
     </group>
   )
-}
-
-function lerp(a, b, t) {
-  return a + (b - a) * t
 }
 
 function buildRobotPose(servos) {
@@ -115,23 +128,17 @@ function buildRobotPose(servos) {
   const muneca2Deg = servoCurrent(servos, 'muneca2', home.muneca2)
   const garraRaw = servoCurrent(servos, 'garra', home.garra)
 
-  // Longitudes visuales
   const upperArmLen = 2.35
   const foreArmLen = 1.65
   const wristLen = 0.06
 
-  // Base y brazo principal
   const base = degToRad(baseDeg - home.base)
   const hombro = degToRad(62 + (hombroDeg - home.hombro))
-  const codo = degToRad(118 + (codoDeg - home.codo) * 1.20)
+  const codo = degToRad(118 + (codoDeg - home.codo) * 1.2)
 
-  // Muñeca 1:
-  // home visual = límite inferior, desde ahí solo sube
   const wrist1LiftDelta = Math.max(0, muneca1Deg - home.muneca1)
-  const muneca1 = degToRad(150 - wrist1LiftDelta * 1.10)
+  const muneca1 = degToRad(150 - wrist1LiftDelta * 1.1)
 
-  // Muñeca 2:
-  // roll de la garra sobre su propio eje
   const muneca2 = degToRad((muneca2Deg - home.muneca2) * 1.0)
 
   const garraOpen = 0.05 + ((garraRaw - 20) / 120) * 0.14
@@ -149,7 +156,7 @@ function buildRobotPose(servos) {
   }
 }
 
-function RobotArm({ servos }) {
+function RobotArm({ servos, activeName }) {
   const baseYawRef = useRef()
   const shoulderRef = useRef()
   const elbowRef = useRef()
@@ -168,10 +175,7 @@ function RobotArm({ servos }) {
   useFrame((_, delta) => {
     const target = targetPoseRef.current
     const visual = visualPoseRef.current
-
-    // Entre más alto, más “responsivo”.
-    // 10-14 se siente bastante bien.
-    const alpha = 1 - Math.exp(-12 * delta)
+    const alpha = 1 - Math.exp(-16 * delta)
 
     visual.base = lerp(visual.base, target.base, alpha)
     visual.hombro = lerp(visual.hombro, target.hombro, alpha)
@@ -180,36 +184,25 @@ function RobotArm({ servos }) {
     visual.muneca2 = lerp(visual.muneca2, target.muneca2, alpha)
     visual.garraOpen = lerp(visual.garraOpen, target.garraOpen, alpha)
 
-    if (baseYawRef.current) {
-      baseYawRef.current.rotation.y = visual.base
-    }
-
-    if (shoulderRef.current) {
-      shoulderRef.current.rotation.z = visual.hombro
-    }
-
-    if (elbowRef.current) {
-      elbowRef.current.rotation.z = visual.codo
-    }
-
-    if (wrist1Ref.current) {
-      wrist1Ref.current.rotation.z = visual.muneca1
-    }
-
-    if (wrist2Ref.current) {
-      wrist2Ref.current.rotation.x = visual.muneca2
-    }
-
-    if (fingerTopRef.current) {
-      fingerTopRef.current.position.y = visual.garraOpen
-    }
-
-    if (fingerBottomRef.current) {
-      fingerBottomRef.current.position.y = -visual.garraOpen
-    }
+    if (baseYawRef.current) baseYawRef.current.rotation.y = visual.base
+    if (shoulderRef.current) shoulderRef.current.rotation.z = visual.hombro
+    if (elbowRef.current) elbowRef.current.rotation.z = visual.codo
+    if (wrist1Ref.current) wrist1Ref.current.rotation.z = visual.muneca1
+    if (wrist2Ref.current) wrist2Ref.current.rotation.x = visual.muneca2
+    if (fingerTopRef.current) fingerTopRef.current.position.y = visual.garraOpen
+    if (fingerBottomRef.current) fingerBottomRef.current.position.y = -visual.garraOpen
   })
 
   const initial = visualPoseRef.current
+
+  const colors = {
+    base: activeName === 'base' ? '#22d3ee' : '#38bdf8',
+    hombro: activeName === 'hombro' ? '#a78bfa' : '#60a5fa',
+    codo: activeName === 'codo' ? '#4ade80' : '#34d399',
+    muneca1: activeName === 'muneca1' ? '#fde047' : '#fbbf24',
+    muneca2: activeName === 'muneca2' ? '#fb923c' : '#f59e0b',
+    garra: activeName === 'garra' ? '#f472b6' : '#fca5a5',
+  }
 
   return (
     <group position={[0, -1.15, 0]}>
@@ -217,37 +210,31 @@ function RobotArm({ servos }) {
       <axesHelper args={[1.5]} position={[0, 0, 0]} />
 
       <group ref={baseYawRef} rotation={[0, initial.base, 0]}>
-        {/* Base */}
         <mesh position={[0, 0.18, 0]}>
           <cylinderGeometry args={[1.0, 1.15, 0.36, 28, 1, true]} />
-          <meshBasicMaterial wireframe color="#38bdf8" />
+          <meshBasicMaterial wireframe color={colors.base} />
         </mesh>
 
-        {/* Torre / hombro */}
         <group position={[0, 0.38, 0]}>
-          <Joint size={0.18} color="#67e8f9" />
+          <Joint size={0.18} color={colors.base} />
 
           <group ref={shoulderRef} rotation={[0, 0, initial.hombro]}>
-            <Segment length={initial.upperArmLen} thickness={0.22} color="#60a5fa" />
+            <Segment length={initial.upperArmLen} thickness={0.22} color={colors.hombro} />
 
-            {/* Codo */}
             <group position={[initial.upperArmLen, 0, 0]}>
-              <Joint size={0.17} color="#a5f3fc" />
+              <Joint size={0.17} color={colors.hombro} />
 
               <group ref={elbowRef} rotation={[0, 0, initial.codo]}>
-                <Segment length={initial.foreArmLen} thickness={0.18} color="#34d399" />
+                <Segment length={initial.foreArmLen} thickness={0.18} color={colors.codo} />
 
-                {/* Muñeca */}
                 <group position={[initial.foreArmLen, 0, 0]}>
-                  <Joint size={0.12} color="#fde68a" />
+                  <Joint size={0.12} color={colors.codo} />
 
-                  {/* Muñeca 1 */}
                   <group ref={wrist1Ref} rotation={[0, 0, initial.muneca1]}>
-                    <Segment length={initial.wristLen} thickness={0.10} color="#fbbf24" />
+                    <Segment length={initial.wristLen} thickness={0.10} color={colors.muneca1} />
 
-                    {/* Muñeca 2 */}
                     <group position={[initial.wristLen, 0, 0]}>
-                      <Joint size={0.10} color="#f59e0b" />
+                      <Joint size={0.10} color={colors.muneca2} />
 
                       <group rotation={[0, 0, degToRad(-58)]}>
                         <group ref={wrist2Ref} rotation={[initial.muneca2, 0, 0]}>
@@ -255,6 +242,7 @@ function RobotArm({ servos }) {
                             open={initial.garraOpen}
                             topRef={fingerTopRef}
                             bottomRef={fingerBottomRef}
+                            color={colors.garra}
                           />
                         </group>
                       </group>
@@ -281,6 +269,8 @@ function StatRow({ label, value }) {
 
 export default function App() {
   const wsRef = useRef(null)
+  const consoleRef = useRef(null)
+
   const [socketState, setSocketState] = useState('connecting')
   const [robot, setRobot] = useState(DEFAULT_STATE)
 
@@ -295,13 +285,17 @@ export default function App() {
       try {
         const data = JSON.parse(event.data)
         setRobot(data)
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
 
     return () => ws.close()
   }, [])
+
+  useEffect(() => {
+    if (consoleRef.current) {
+      consoleRef.current.scrollTop = 0
+    }
+  }, [robot.logs])
 
   function send(payload) {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -310,6 +304,7 @@ export default function App() {
   }
 
   const logs = useMemo(() => [...(robot.logs ?? [])].slice(-80).reverse(), [robot.logs])
+  const activeName = useMemo(() => activeServoName(robot.servos), [robot.servos])
 
   return (
     <div className="h-screen overflow-hidden bg-[radial-gradient(circle_at_top,#0f172a,#060816_55%)] text-slate-100">
@@ -327,6 +322,7 @@ export default function App() {
             <StatRow label="Puerto" value={robot.port || '-'} />
             <StatRow label="Modo" value={robot.mode} />
             <StatRow label="Joystick" value={robot.joystick_connected ? 'Detectado' : 'No detectado'} />
+            <StatRow label="Activo" value={activeName || 'ninguno'} />
           </div>
 
           <div className="grid grid-cols-3 gap-2">
@@ -385,7 +381,7 @@ export default function App() {
             <Canvas camera={{ position: [6, 5, 8], fov: 42 }}>
               <color attach="background" args={['#050816']} />
               <ambientLight intensity={1} />
-              <RobotArm servos={robot.servos} />
+              <RobotArm servos={robot.servos} activeName={activeName} />
               <OrbitControls enablePan enableZoom enableRotate />
             </Canvas>
           </section>
@@ -394,10 +390,13 @@ export default function App() {
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold">Consola</h2>
-                <p className="text-sm text-slate-400">Lo mismo que ves en backend, pero sin olor a terminal.</p>
+                <p className="text-sm text-slate-400">Limpia y directa.</p>
               </div>
             </div>
-            <div className="h-[150px] overflow-auto rounded-2xl border border-white/10 bg-black/30 p-3 font-mono text-xs text-emerald-300">
+            <div
+              ref={consoleRef}
+              className="h-[150px] overflow-auto rounded-2xl border border-white/10 bg-black/30 p-3 font-mono text-xs text-emerald-300"
+            >
               {logs.length === 0 ? (
                 <div className="text-slate-500">Sin logs todavía.</div>
               ) : (
@@ -421,9 +420,17 @@ export default function App() {
             {SERVO_ORDER.map((name) => {
               const servo = robot.servos?.[name]
               if (!servo) return null
+              const isActive = activeName === name
 
               return (
-                <div key={name} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                <div
+                  key={name}
+                  className={`rounded-2xl border p-3 transition ${
+                    isActive
+                      ? 'border-cyan-300/40 bg-cyan-400/10 shadow-lg shadow-cyan-500/10'
+                      : 'border-white/10 bg-white/5'
+                  }`}
+                >
                   <div className="mb-2 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">{SERVO_LABELS[name]}</p>
