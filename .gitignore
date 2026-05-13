@@ -92,3 +92,6 @@ deploy.local.sh
 *.zip
 *.tar
 *.gz
+# Security audit temporary reports
+**/npm-audit-before.json
+**/npm-audit-after.json
