@@ -17,6 +17,7 @@ para una Intel RealSense D435i.
 - Visualizacion 3D suavizada del brazo, campo visual y nubes de puntos.
 - Percepcion simulada, RealSense local o RealSense remota desde Jetson Nano.
 - Pruebas unitarias del control, limites y reactivacion manual.
+- Validacion automatica de backend y frontend mediante GitHub Actions.
 
 ## Arquitectura
 
@@ -43,7 +44,8 @@ Brazo-robot/
 │   ├── 01-hardware-y-conexiones.md
 │   ├── 02-firmware-esp32.md
 │   ├── 03-control-center.md
-│   └── 04-realsense-jetson.md
+│   ├── 04-realsense-jetson.md
+│   └── 05-manual-de-uso-y-pruebas.md
 ├── robot_arm_controller/
 │   └── robot_arm_controller.ino
 └── control-center/
@@ -144,3 +146,4 @@ npm run build
 - [Firmware ESP32](docs/02-firmware-esp32.md)
 - [Control Center](docs/03-control-center.md)
 - [RealSense D435i y Jetson Nano](docs/04-realsense-jetson.md)
+- [Manual de uso y pruebas](docs/05-manual-de-uso-y-pruebas.md)
