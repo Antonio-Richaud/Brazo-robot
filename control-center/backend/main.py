@@ -1,128 +1,136 @@
+"""Punto de entrada del Control Center.
+
+Ejemplos:
+    python main.py --mode simulation --perception simulated
+    python main.py --mode hardware --perception off
+    python main.py --mode hardware --perception realsense --no-joystick
+"""
+
+from __future__ import annotations
+
+import argparse
 import time
 
-from config import LOOP_SLEEP, SEND_INTERVAL, STATUS_POLL_INTERVAL, SERIAL_PORT, HOME, LIMITS
+from config import (
+    LOOP_SLEEP,
+    REALSENSE_SERIAL,
+    PERCEPTION_REMOTE_URL,
+    SERIAL_PORT,
+    WS_HOST,
+    WS_PORT,
+    WS_PUBLISH_INTERVAL,
+)
+from controller import RobotController
 from joystick_manager import JoystickManager
+from perception import PerceptionWorker
 from robot_state import RobotState
 from serial_manager import SerialManager
 from ws_server import WebSocketStateServer
 
 
-def clamp(value, low, high):
-    return max(low, min(high, value))
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Backend local del brazo robot")
+    parser.add_argument(
+        "--mode",
+        choices=("hardware", "simulation"),
+        default="hardware",
+        help="Usa el ESP32 real o un movimiento simulado para desarrollar sin hardware.",
+    )
+    parser.add_argument(
+        "--serial-port",
+        default=SERIAL_PORT,
+        help="Puerto del ESP32; si se omite se intenta detectar automaticamente.",
+    )
+    parser.add_argument("--no-joystick", action="store_true")
+    parser.add_argument(
+        "--perception",
+        choices=("off", "simulated", "realsense", "remote"),
+        default="off",
+    )
+    parser.add_argument("--realsense-serial", default=REALSENSE_SERIAL)
+    parser.add_argument("--perception-url", default=PERCEPTION_REMOTE_URL)
+    return parser.parse_args()
 
 
-def main():
+def run(args: argparse.Namespace) -> None:
     state = RobotState()
-    serial_manager = SerialManager(state=state, port=SERIAL_PORT)
+    state.set_runtime_mode(args.mode)
+    simulation = args.mode == "simulation"
+    controller = RobotController(state=state, simulation=simulation)
+    serial_manager = None
     joystick_manager = None
-    ws_server = None
+    perception_worker = PerceptionWorker(
+        state=state,
+        source=args.perception,
+        serial=args.realsense_serial,
+        remote_url=args.perception_url,
+    )
+    ws_server = WebSocketStateServer(
+        state=state,
+        command_handler=controller.handle_command,
+        host=WS_HOST,
+        port=WS_PORT,
+        publish_interval=WS_PUBLISH_INTERVAL,
+    )
 
     try:
-        serial_manager.connect()
-        joystick_manager = JoystickManager(state=state, serial_manager=serial_manager)
+        if simulation:
+            state.add_log("[RUNTIME] simulacion de brazo activa")
+        else:
+            serial_manager = SerialManager(
+                state=state,
+                port=args.serial_port,
+                event_handler=controller.handle_protocol_event,
+            )
+            controller.serial_manager = serial_manager
+            try:
+                port = serial_manager.connect()
+                state.add_log(f"[RUNTIME] ESP32 listo en {port}")
+            except Exception as exc:
+                # La UI permanece disponible para diagnostico aunque falte el ESP32.
+                state.set_error(str(exc))
+                state.add_log(f"[RUNTIME] ESP32 no disponible: {exc}")
 
-        def handle_ws_command(data: dict):
-            action = data.get("action")
+        if not args.no_joystick:
+            try:
+                joystick_manager = JoystickManager(
+                    state=state,
+                    action_handler=controller.handle_command,
+                )
+                controller.attach_joystick(joystick_manager)
+            except Exception as exc:
+                state.add_log(f"[JOYSTICK] no disponible: {exc}")
 
-            if action == "home":
-                serial_manager.send("home")
-                joystick_manager.targets = {k: float(v) for k, v in HOME.items()}
-                joystick_manager.manual_enabled = True
-                joystick_manager.force_sync_targets()
-                state.set_mode("manual")
-                return
-
-            if action == "saludo":
-                serial_manager.send("saludo")
-                joystick_manager.manual_enabled = False
-                state.set_mode("saludo")
-                return
-
-            if action == "stop":
-                serial_manager.send("stop")
-                joystick_manager.targets = {k: float(v) for k, v in HOME.items()}
-                joystick_manager.manual_enabled = True
-                joystick_manager.force_sync_targets()
-                state.set_mode("manual")
-                return
-                
-            if action == "rutina":
-                serial_manager.send("rutina")
-                joystick_manager.manual_enabled = False
-                state.set_mode("rutina")
-                return
-
-            if action == "set_servo":
-                servo_id = int(data.get("servo_id"))
-                angle = float(data.get("angle"))
-
-                if servo_id not in joystick_manager.targets:
-                    return
-
-                low, high = LIMITS[servo_id]
-                angle = clamp(angle, low, high)
-
-                joystick_manager.targets[servo_id] = angle
-                joystick_manager.manual_enabled = True
-                joystick_manager.force_sync_targets()
-                state.update_servo_target(servo_id, int(round(angle)))
-                return
-
-        ws_server = WebSocketStateServer(
-            state=state,
-            command_handler=handle_ws_command,
-            host="127.0.0.1",
-            port=8765,
-            publish_interval=0.05,
-        )
+        perception_worker.start()
         ws_server.start()
+        state.add_log(f"[WS] ws://{WS_HOST}:{WS_PORT}")
 
-        last_loop = time.time()
-        last_send = 0.0
-        last_status_poll = 0.0
-
-        print("\n[BACKEND] Control center backend corriendo.")
-        print("[BACKEND] WebSocket listo en ws://127.0.0.1:8765")
-        print("[BACKEND] Presiona Ctrl+C o el boton rapido 4 para salir.\n")
-
+        last_loop = time.monotonic()
         while True:
-            now = time.time()
+            now = time.monotonic()
             dt = now - last_loop
             last_loop = now
-
-            joystick_manager.tick(dt)
-
-            sent_motion_command = False
-
-            if joystick_manager.manual_enabled and (now - last_send >= SEND_INTERVAL):
-                for sid in range(1, 7):
-                    angle = int(round(joystick_manager.targets[sid]))
-                    if joystick_manager.last_sent[sid] != angle:
-                        serial_manager.send(f"s {sid} {angle}")
-                        joystick_manager.last_sent[sid] = angle
-                        state.update_servo_target(sid, angle)
-                        sent_motion_command = True
-
-                if sent_motion_command:
-                    last_send = now
-
-            # Pide status solo si no acabamos de mandar movimiento
-            if (now - last_status_poll >= STATUS_POLL_INTERVAL) and (now - last_send >= 0.20):
-                serial_manager.send("status")
-                last_status_poll = now
-
+            if joystick_manager:
+                try:
+                    joystick_manager.tick(dt)
+                except Exception as exc:
+                    state.add_log(f"[JOYSTICK ERROR] {exc}")
+                    joystick_manager.close()
+                    joystick_manager = None
+                    controller.joystick_manager = None
+            controller.tick(now)
             time.sleep(LOOP_SLEEP)
 
-    except KeyboardInterrupt as e:
-        print(f"\n[BACKEND] salida: {e}")
-    except Exception as e:
-        print(f"\n[BACKEND ERROR] {e}")
+    except KeyboardInterrupt:
+        state.add_log("[RUNTIME] cierre solicitado")
     finally:
-        if ws_server:
-            ws_server.stop()
+        perception_worker.stop()
+        ws_server.stop()
+        if joystick_manager:
+            joystick_manager.close()
         if serial_manager:
             serial_manager.disconnect()
 
 
 if __name__ == "__main__":
-    main()
+    run(parse_args())
