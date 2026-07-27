@@ -10,6 +10,8 @@ const uint8_t SERVO_FREQ = 50;
 const uint8_t SERVO_COUNT = 6;
 
 const uint16_t MOTION_UPDATE_MS = 10;
+const float MAX_MOTION_DT_SEC = 0.05f;
+const uint8_t MAX_COMMAND_LENGTH = 64;
 
 // Suavidad para control manual
 const float MAX_SPEED_DEG_PER_SEC = 85.0f;
@@ -225,6 +227,7 @@ void beginChoreoMove(uint8_t stepIndex) {
 }
 
 void startSequence(SequenceType seq) {
+  lastMotionUpdate = millis();
   activeSequence = seq;
   choreoActive = true;
   beginChoreoMove(0);
@@ -254,6 +257,9 @@ void stopChoreo() {
   }
 
   moveToHome();
+  // Evita acumular varios segundos de dt durante la coreografia. Sin este
+  // reinicio, el primer paso manual podia saltar directamente a Home.
+  lastMotionUpdate = millis();
   Serial.println("OK -> coreografia detenida, regresando a home");
 }
 
@@ -311,6 +317,7 @@ void updateChoreo() {
         activeSequence = SEQ_NONE;
 
         moveToHome();
+        lastMotionUpdate = now;
 
         if (endedSequence == SEQ_SALUDO) {
           Serial.println("OK -> saludo terminado");
@@ -338,6 +345,7 @@ void updateSmoothMotion() {
 
   float dt = (float)(now - lastMotionUpdate) / 1000.0f;
   lastMotionUpdate = now;
+  if (dt > MAX_MOTION_DT_SEC) dt = MAX_MOTION_DT_SEC;
 
   for (uint8_t i = 0; i < SERVO_COUNT; i++) {
     float error = servos[i].target - servos[i].current;
@@ -517,7 +525,12 @@ void loop() {
         inputLine = "";
       }
     } else {
-      inputLine += c;
+      if (inputLine.length() < MAX_COMMAND_LENGTH) {
+        inputLine += c;
+      } else {
+        inputLine = "";
+        Serial.println("ERROR: comando demasiado largo");
+      }
     }
   }
 

@@ -1,16 +1,22 @@
-# React + Vite
+# Arm Control Center
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interfaz React + Three.js para visualizar el estado estimado del brazo, enviar
+comandos manuales y representar nubes de puntos producidas por el backend.
 
-Currently, two official plugins are available:
+```bash
+npm ci
+npm run dev
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Por defecto se conecta a `ws://<host>:8765`. Para usar otra direccion:
 
-## React Compiler
+```bash
+VITE_ROBOT_WS_URL=ws://192.168.1.20:8765 npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Comprobaciones:
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm run lint
+npm run build
+```

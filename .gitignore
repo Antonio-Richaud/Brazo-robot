@@ -92,6 +92,12 @@ deploy.local.sh
 *.zip
 *.tar
 *.gz
+
+# RealSense / perception captures and machine-local calibration
+*.bag
+captures/
+recordings/
+calibration.local.json
 # Security audit temporary reports
 **/npm-audit-before.json
 **/npm-audit-after.json
