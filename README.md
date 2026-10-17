@@ -1,13 +1,14 @@
 # Brazo Robot · Control Center y Percepcion 3D
 
-Plataforma para controlar un brazo robot de seis grados de libertad con ESP32,
-PCA9685 y servos MG995/SG90. Incluye control manual por joystick, firmware con
+Plataforma para controlar un brazo robot de seis grados de libertad con
+Raspberry Pi 4 (control I2C directo) o ESP32 legacy, PCA9685 y servos MG995/SG90. Incluye control manual por joystick, firmware con
 movimiento suavizado, gemelo digital en Three.js y una arquitectura preparada
 para una Intel RealSense D435i.
 
 ## Estado actual
 
-- Control de seis servos por ESP32 + PCA9685.
+- Control de seis servos mediante Raspberry Pi 4 + PCA9685 por I2C, o ESP32 legacy por serial.
+- Arranque desarmado y armado explicito de PWM en Raspberry Pi.
 - Home y limites mecanicos por articulacion.
 - Coreografias `saludo` y `rutina`.
 - Backend Python tolerante a la ausencia de ESP32 o joystick.
@@ -25,8 +26,9 @@ para una Intel RealSense D435i.
 flowchart LR
     J[Joystick USB] --> M[Backend en Mac]
     UI[Control Center web] <-->|WebSocket| M
-    M <-->|Serial| E[ESP32]
-    E --> P[PCA9685 y servos]
+    M <-->|I2C| P[PCA9685 y servos]
+    M -.->|Serial legacy| E[ESP32]
+    E -.-> P
     R[D435i] --> N[Jetson Nano 2GB]
     N -->|Nube reducida| M
 ```
@@ -92,7 +94,24 @@ npm run dev
 
 Abrir la direccion mostrada por Vite, normalmente `http://localhost:5173`.
 
-## Ejecucion con el brazo
+## Raspberry Pi 4 sin ESP32
+
+Se puede ejecutar el backend directamente en la Raspberry Pi 4 y conectar
+el PCA9685 por I2C sin ESP32. Consulta la guia de cableado, armado seguro y
+pruebas en [docs/06-raspberry-pi-4.md](docs/06-raspberry-pi-4.md).
+
+```bash
+cd control-center/backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt -r requirements-raspberry-pi.txt
+python main.py --mode raspberry-pi --perception off
+```
+
+El PCA9685 arranca desarmado y requiere pulsar **Armar PWM** en el panel.
+Esto escribe la postura Home estimada: comprobar antes la postura mecanica real.
+
+## Ejecucion con el brazo ESP32 (legacy)
 
 ```bash
 cd control-center/backend
@@ -142,6 +161,7 @@ npm run build
 
 ## Documentacion
 
+- [Raspberry Pi 4 sin ESP32](docs/06-raspberry-pi-4.md)
 - [Hardware y conexiones](docs/01-hardware-y-conexiones.md)
 - [Firmware ESP32](docs/02-firmware-esp32.md)
 - [Control Center](docs/03-control-center.md)

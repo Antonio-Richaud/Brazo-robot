@@ -21,6 +21,7 @@ export const HOME = {
 export const DEFAULT_STATE = {
   protocol_version: 2,
   connected: false,
+  armed: false,
   port: null,
   runtime_mode: 'simulation',
   mode: 'manual',
