@@ -25,6 +25,7 @@ from joystick_manager import JoystickManager
 from perception import PerceptionWorker
 from robot_state import RobotState
 from serial_manager import SerialManager
+from raspberry_pi_driver import RaspberryPiMotionDriver
 from ws_server import WebSocketStateServer
 
 
@@ -32,9 +33,9 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Backend local del brazo robot")
     parser.add_argument(
         "--mode",
-        choices=("hardware", "simulation"),
+        choices=("hardware", "simulation", "raspberry-pi"),
         default="hardware",
-        help="Usa el ESP32 real o un movimiento simulado para desarrollar sin hardware.",
+        help="hardware=ESP32, raspberry-pi=PCA9685 directo por I2C, simulation=sin hardware.",
     )
     parser.add_argument(
         "--serial-port",
@@ -77,19 +78,25 @@ def run(args: argparse.Namespace) -> None:
         if simulation:
             state.add_log("[RUNTIME] simulacion de brazo activa")
         else:
-            serial_manager = SerialManager(
-                state=state,
-                port=args.serial_port,
-                event_handler=controller.handle_protocol_event,
-            )
+            if args.mode == "raspberry-pi":
+                serial_manager = RaspberryPiMotionDriver(
+                    state=state,
+                    event_handler=controller.handle_protocol_event,
+                )
+            else:
+                serial_manager = SerialManager(
+                    state=state,
+                    port=args.serial_port,
+                    event_handler=controller.handle_protocol_event,
+                )
             controller.serial_manager = serial_manager
             try:
                 port = serial_manager.connect()
-                state.add_log(f"[RUNTIME] ESP32 listo en {port}")
+                state.add_log(f"[RUNTIME] {args.mode} listo en {port}")
             except Exception as exc:
                 # La UI permanece disponible para diagnostico aunque falte el ESP32.
                 state.set_error(str(exc))
-                state.add_log(f"[RUNTIME] ESP32 no disponible: {exc}")
+                state.add_log(f"[RUNTIME] hardware no disponible: {exc}")
 
         if not args.no_joystick:
             try:
@@ -119,6 +126,8 @@ def run(args: argparse.Namespace) -> None:
                     joystick_manager = None
                     controller.joystick_manager = None
             controller.tick(now)
+            if args.mode == "raspberry-pi" and serial_manager:
+                serial_manager.tick(now)
             time.sleep(LOOP_SLEEP)
 
     except KeyboardInterrupt:

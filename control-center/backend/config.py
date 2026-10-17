@@ -34,6 +34,8 @@ class ServoSpec:
     min_angle: int
     max_angle: int
     rate_deg_s: float
+    min_us: int = 500
+    max_us: int = 2500
 
 
 SERVO_SPECS = (

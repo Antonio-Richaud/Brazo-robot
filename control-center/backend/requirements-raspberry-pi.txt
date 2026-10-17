@@ -1,0 +1,2 @@
+# Solo en Raspberry Pi OS (venv). Blinka se instala como dependencia.
+adafruit-circuitpython-pca9685>=3.4,<4

@@ -18,6 +18,7 @@ class RobotState:
         self.state = {
             "protocol_version": 2,
             "connected": False,
+            "armed": False,
             "port": None,
             "runtime_mode": "hardware",
             "mode": "manual",
@@ -103,6 +104,12 @@ class RobotState:
             self.state["connected"] = connected
             self.state["port"] = port
             self._touch()
+
+    def set_armed(self, armed: bool) -> None:
+        with self._lock:
+            if self.state['armed'] != armed:
+                self.state['armed'] = armed
+                self._touch()
 
     def set_mode(self, mode: str) -> None:
         with self._lock:

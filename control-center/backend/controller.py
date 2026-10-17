@@ -66,8 +66,28 @@ class RobotController:
             return False
 
         with self._lock:
+            if action == 'arm':
+                if not self.serial_manager or not getattr(self.serial_manager, 'requires_arm', False):
+                    return False
+                ok = self.serial_manager.arm()
+                if ok:
+                    self._reset_home(sync=True)
+                return ok
+
+            if action == 'disarm':
+                if not self.serial_manager or not getattr(self.serial_manager, 'requires_arm', False):
+                    return False
+                ok = self.serial_manager.disarm()
+                self._reset_home(sync=True)
+                self._set_mode('manual', manual=True)
+                return ok
+
+            if not self.simulation and self.serial_manager and getattr(self.serial_manager, 'requires_arm', False) and not self.serial_manager.armed:
+                return False
+
             if action == "home":
-                self._send("home")
+                if not self._send("home"):
+                    return False
                 self._reset_home(sync=True)
                 self._set_mode("manual", manual=True)
                 return True
@@ -75,14 +95,16 @@ class RobotController:
             if action in {"saludo", "rutina"}:
                 if self.state.get_mode() != "manual":
                     return False
-                self._send(action)
+                if not self._send(action):
+                    return False
                 self._set_mode(action, manual=False)
                 if self.simulation:
                     self._start_simulation_sequence(action)
                 return True
 
             if action == "stop":
-                self._send("stop")
+                if not self._send("stop"):
+                    return False
                 self._reset_home(sync=True)
                 self._set_mode("manual", manual=True)
                 return True
@@ -112,6 +134,8 @@ class RobotController:
         with self._lock:
             if self.manual_enabled and now - self._last_send >= SEND_INTERVAL:
                 changed = False
+                if not self.simulation and self.serial_manager and getattr(self.serial_manager, "requires_arm", False) and not self.serial_manager.armed:
+                    return
                 for servo_id in sorted(self.targets):
                     angle = round(self.targets[servo_id])
                     if self.last_sent[servo_id] == angle:

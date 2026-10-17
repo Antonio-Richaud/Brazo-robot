@@ -67,7 +67,8 @@ function App() {
   const socketConnected = socketState === 'connected'
   const manual = robot.mode === 'manual'
   const perception = robot.perception ?? {}
-  const controlsDisabled = !socketConnected || !manual
+  const needsArm = robot.runtime_mode === "raspberry-pi"
+  const controlsDisabled = !socketConnected || !manual || (needsArm && !robot.armed)
   const lastMessageTime = lastMessageAt
     ? new Date(lastMessageAt).toLocaleTimeString('es-MX', { hour12: false })
     : '—'
@@ -98,8 +99,9 @@ function App() {
             <div className="section-title"><span>01</span><h2>Sistema</h2></div>
             <div className="metrics-grid">
               <Metric label="Runtime" value={robot.runtime_mode} tone="cyan" />
-              <Metric label="ESP32" value={robot.connected ? 'conectado' : 'sin enlace'} tone={robot.connected ? 'green' : 'amber'} />
-              <Metric label="Puerto" value={robot.port || '—'} />
+              <Metric label={needsArm ? "PCA9685" : "ESP32"} value={robot.connected ? 'conectado' : 'sin enlace'} tone={robot.connected ? 'green' : 'amber'} />
+              <Metric label="Puerto / Bus" value={robot.port || '—'} />
+              {needsArm && <Metric label="PWM" value={robot.armed ? "armado" : "desarmado"} tone={robot.armed ? "green" : "amber"} />}
               <Metric label="Modo" value={robot.mode} tone={manual ? 'cyan' : 'amber'} />
               <Metric label="Joystick" value={robot.joystick_connected ? 'detectado' : 'ausente'} />
               <Metric label="Activo" value={activeName ? SERVO_LABELS[activeName] : 'estable'} />
@@ -109,16 +111,19 @@ function App() {
           <section className="panel-section">
             <div className="section-title"><span>02</span><h2>Acciones</h2></div>
             <div className="action-grid">
-              <ActionButton tone="cyan" disabled={!socketConnected} onClick={() => send({ action: 'home' })}>Home</ActionButton>
-              <ActionButton tone="green" disabled={!socketConnected || !manual} onClick={() => send({ action: 'saludo' })}>Saludo</ActionButton>
-              <ActionButton tone="violet" disabled={!socketConnected || !manual} onClick={() => send({ action: 'rutina' })}>Rutina</ActionButton>
+              {needsArm && <ActionButton tone="green" disabled={!socketConnected || !robot.connected || robot.armed} onClick={() => send({ action: "arm" })} title="Habilita PWM suponiendo que el brazo esta fisicamente en Home. Verifica la posicion antes de pulsar.">Armar PWM</ActionButton>}
+              {needsArm && <ActionButton tone="amber" disabled={!socketConnected || !robot.armed} onClick={() => send({ action: "disarm" })} title="Libera PWM, pero no corta la fuente externa de los servos.">Desarmar PWM</ActionButton>}
+              <ActionButton tone="cyan" disabled={controlsDisabled} onClick={() => send({ action: 'home' })}>Home</ActionButton>
+              <ActionButton tone="green" disabled={controlsDisabled} onClick={() => send({ action: 'saludo' })}>Saludo</ActionButton>
+              <ActionButton tone="violet" disabled={controlsDisabled} onClick={() => send({ action: 'rutina' })}>Rutina</ActionButton>
               <ActionButton
                 tone="amber"
-                disabled={!socketConnected}
+                disabled={!socketConnected || (needsArm && !robot.armed)}
                 onClick={() => send({ action: 'stop' })}
                 title="Cancela la secuencia y ordena volver a Home; no es un paro eléctrico."
               >Cancelar / Home</ActionButton>
             </div>
+            {needsArm && <p className="safety-note"><span>!</span> Antes de armar, ubica manualmente las seis articulaciones en Home, despeja el recorrido y comprueba el corte fisico de potencia. Armar envia esos pulsos de inmediato.</p>}
             <p className="safety-note"><span>!</span> “Cancelar” todavía mueve el brazo hacia Home. No sustituye un corte físico de potencia.</p>
           </section>
 
