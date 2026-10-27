@@ -241,7 +241,7 @@ python3 -m venv --system-site-packages ~/robot-lab/.venv-jetson
 source ~/robot-lab/.venv-jetson/bin/activate
 ~~~
 
-Se eligió --system-site-packages **deliberadamente** para acceder a cv2 y tensorrt instalados por el sistema. Por ello, el entorno no está aislado al cien por ciento: ve paquetes globales, aunque sus instalaciones locales residen dentro de ~/.venv-jetson.
+Se eligió --system-site-packages **deliberadamente** para acceder a cv2 y tensorrt instalados por el sistema. Por ello, el entorno no está aislado al cien por ciento: ve paquetes globales, aunque sus instalaciones locales residen dentro de ~/robot-lab/.venv-jetson.
 
 Verificaciones realizadas y correctas:
 
