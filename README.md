@@ -19,6 +19,20 @@ para una Intel RealSense D435i.
 - Pruebas unitarias del control, limites y reactivacion manual.
 - Validacion automatica de backend y frontend mediante GitHub Actions.
 
+## Registro de instalación Jetson Nano (26-10-2026)
+
+La Jetson Nano 2GB ya tiene JetPack 4.6.1, Ubuntu 18.04.6, CUDA 10.2,
+OpenCV 4.1.1, TensorRT 8.2.1.8, acceso SSH por
+`jetson-nano.local` y un entorno Python 3.6 con pip 21.3.1.
+
+**Estado comprobado:** sistema y bibliotecas NVIDIA funcionales; el nodo
+RealSense, el control directo PCA9685 y el backend moderno **aún no están
+desplegados ni verificados en la Jetson**. El backend requiere Python moderno
+y no debe instalarse directamente sobre Python 3.6 de JetPack.
+
+- [Bitácora reproducible de instalación y diagnósticos](docs/06-bitacora-instalacion-jetson-nano.md).
+- [Estado del proyecto, arquitectura, riesgos y punto de continuidad](docs/07-estado-y-continuidad-del-proyecto.md).
+
 ## Arquitectura
 
 ```mermaid
@@ -45,7 +59,9 @@ Brazo-robot/
 │   ├── 02-firmware-esp32.md
 │   ├── 03-control-center.md
 │   ├── 04-realsense-jetson.md
-│   └── 05-manual-de-uso-y-pruebas.md
+│   ├── 05-manual-de-uso-y-pruebas.md
+│   ├── 06-bitacora-instalacion-jetson-nano.md
+│   └── 07-estado-y-continuidad-del-proyecto.md
 ├── robot_arm_controller/
 │   └── robot_arm_controller.ino
 └── control-center/
@@ -147,3 +163,6 @@ npm run build
 - [Control Center](docs/03-control-center.md)
 - [RealSense D435i y Jetson Nano](docs/04-realsense-jetson.md)
 - [Manual de uso y pruebas](docs/05-manual-de-uso-y-pruebas.md)
+
+- [Bitácora de instalación de NVIDIA Jetson Nano (26-10-2026)](docs/06-bitacora-instalacion-jetson-nano.md)
+- [Estado, decisiones y continuidad del proyecto](docs/07-estado-y-continuidad-del-proyecto.md)
