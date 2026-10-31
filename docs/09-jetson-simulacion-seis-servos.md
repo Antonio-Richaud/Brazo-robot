@@ -438,3 +438,17 @@ El usuario compartió captura de Chrome DevTools del dashboard de reproducción 
 **Lo que aún no acredita una captura estática:** que la Base haya vuelto a animarse entre 90° y 125° y que los diez controles permanezcan deshabilitados en el estado `CONNECTED` restaurado. Verificarlo con observación de valores y conteos DOM de solo lectura antes de cerrar toda la prueba 9.51.
 
 En DevTools persiste únicamente el aviso no bloqueante `THREE.Clock` de dependencia, sin errores de conexión visibles. No silenciarlo ni forzar actualización mayor. Mantener OE alto, V+ de motores apagada, backend normal separado y `main` intacta.
+
+## 28. Paso 9.51b: reconexion segura y animacion restaurada (30-10-2026)
+
+**Captura de DevTools recibida del usuario:** luego de detener y reiniciar el proceso Mac `jetson_demo_monitor.py` conectado al emisor de datos matematicos Jetson, la UI en 5174 paso de `RECONNECTING` a `CONNECTED` sin recargar. La expresion de inspeccion de DOM (40 muestras de Base en aproximadamente seis segundos) devolvio:
+
+```text
+Estado: connected | Base: 90°–125° | Botones bloqueados: 4/4 | Deslizadores bloqueados: 6/6 | RECONEXION_SEGURA_OK
+```
+
+Este resultado confirma por valores de interfaz que la reproduccion matematica se reanudo despues de recuperar el transporte, mientras los cuatro botones Home/Saludo/Rutina/Cancelar y los seis deslizadores se mantuvieron deshabilitados. Junto con la prueba offline anterior, cierra la validacion de recuperacion del replay en la Mac. El aviso residual no bloqueante `THREE.Clock` permanece.
+
+**Alcance exacto:** el monitor Mac reproduce repetidamente 13 tramas de simulacion generadas en Jetson por SSH una sola vez; no es un emisor continuo de estado Jetson, no transmite sensores reales y no arma motores. El modo monitor WebSocket carece de `command_handler` y permanece separado del backend 8765.
+
+**Siguiente fase por disenar, sin codigo desplegado:** streaming continuo de **simulacion solamente** desde Jetson, con contrato versionado, validacion estricta en Mac, desconexion detectada y controles bloqueados. Nunca enlazar directamente este modo a PCA9685, GPIO, I2C o servos hasta superar analisis electrico y calibracion. `main` intacta, OE alto, V+ apagada.
