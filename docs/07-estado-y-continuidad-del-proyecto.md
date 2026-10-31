@@ -521,3 +521,16 @@ El usuario compartió una captura posterior al cambio de favicon SVG y `THREE.PC
 **Siguiente comprobación mínima:** cambiar el filtro de consola a **todos los niveles** (`Niveles predeterminados`), limpiar los registros y recargar la página; verificar si reaparece `PCFSoftShadowMap` o surge otra advertencia. Solicitar el contenido o captura de los avisos nuevos. No tocar backend, servos, geometry 3D ni el control de la Jetson durante esta comprobación.
 
 El monitor continúa siendo replay matemático de solo lectura; mantener OE alto a 3.3 V, potencia de servos apagada y `main` intacta.
+
+## 27. Paso 9.47: advertencias WebSocket / THREE.Clock diagnosticadas (30-10-2026)
+
+**Captura del navegador compartida por el usuario con niveles personalizados:** el segundo dashboard en `127.0.0.1:5174` sigue renderizando el gemelo 3D, en modo `MONITOR`, con estado `CONNECTED`. No aparecen el anterior error 404 de favicon ni los avisos repetitivos `PCFSoftShadowMap`: ambas correcciones de los pasos 9.44-9.46 quedan confirmadas visualmente. Sí aparecen dos advertencias nuevas/distintas:
+
+1. `WebSocket connection to 'ws://127.0.0.1:8767/' failed: WebSocket is closed before the connection is established`, referida a `useRobotSocket.js`. El código que se leyó de la rama abre `new WebSocket(url)` inmediatamente en un `useEffect` y ejecutaba `socketRef.current?.close()` durante su limpieza. `src/main.jsx` usa `React.StrictMode`, el cual monta/limpia/vuelve a montar efectos durante el desarrollo. Por lo tanto, este patrón puede cerrar un socket todavía `CONNECTING` y emitir la advertencia, incluso cuando el enlace se establece finalmente.
+2. `THREE.THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.`, enlazada con la línea del `<Canvas>` en `RobotScene.jsx`. La dependencia `@react-three/fiber` 9.x crea internamente un `THREE.Clock` y Three.js r183 lo marcó obsoleto. El proyecto no instancia directamente `THREE.Clock`; es una advertencia pendiente de migración upstream. No silenciar mensajes, no degradar Three.js ni cambiar React Three Fiber a una versión mayor experimental solo para ocultarla.
+
+**Corrección de código aplicada en GitHub, pendiente de probar en Mac:** `control-center/frontend/src/useRobotSocket.js` ahora utiliza estado de ciclo de vida aislado por efecto, pospone el primer `new WebSocket()` al siguiente macrotask mediante `window.setTimeout(connect, 0)` (así Strict Mode puede cancelar su efecto inicial), y evita `socket.close()` mientras esté en estado `CONNECTING`; si se desmonta, `onopen` lo cierra después de establecer la conexión. Mantiene reconexión exponencial y el envío de órdenes existente sin ampliarlas. Este cambio no afecta al monitor remoto ni al ESP32.
+
+**Próximo paso:** Mac `git pull --ff-only` de `feat/jetson-nano-physical-ai`, `npm run lint` + `npm run build` y DevTools en la segunda instancia 5174 tras limpiar consola/recargar. Verificar si desaparece la advertencia de WebSocket, si `CONNECTED` y la animación 3D continúan, y si permanece el aviso upstream `THREE.Clock` (conocido/no crítico). **No afirmar resultado antes de nueva evidencia.**
+
+Seguridad: la reproduccion es matemática, con controles bloqueados y WebSocket del monitor sin comando. OE alto (3.3 V), servos sin alimentación y rama `main` intacta.
