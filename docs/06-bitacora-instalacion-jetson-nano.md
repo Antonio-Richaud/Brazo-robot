@@ -435,7 +435,9 @@ MODE1=0x01, MODE2=0x04, PRE_SCALE=0x79,
 **Prueba automatizada verificada también el 30-10-2026:** tras actualizar al
 commit `3bf41cb`, se ejecutó `python3 -m unittest discover -s jetson/tests -v`
 en la Jetson y se recibió `Ran 9 tests in 0.003s` seguido de `OK`.
-Las pruebas simulan el bus y no provocan PWM ni movimiento. Sigue
-pendiente ejecutar `disable-all` sobre el dispositivo real.
+Las pruebas simulan el bus y no provocan PWM ni movimiento. También se ejecutó `python3 jetson/pca9685_safe.py disable-all` sobre el PCA9685 real:
+la escritura global se aceptó y el programa confirmó `Canales FULL OFF: 16/16`,
+`TODOS DESHABILITADOS: SI`, MODE1=0x01, MODE2=0x04 y PRE_SCALE=0x79.
+**Siguiente fase:** simulación aislada de los seis servos y diseño seguro del controlador.
 No retirar OE de 3.3 V ni conectar la alimentación
 de los servos hasta diseñar y verificar el sistema de armado y corte físico.
