@@ -458,3 +458,13 @@ Esto confirma que el monitor pasó la validación de los datos de demostración 
 **Paso 9.41 pendiente:** sin cerrar el monitor ni los servicios originales, abrir otra terminal de Mac y ejecutar `VITE_ROBOT_WS_URL=ws://127.0.0.1:8767 npm run dev -- --host 127.0.0.1 --port 5174 --strictPort` dentro de `control-center/frontend`. Visitar `http://127.0.0.1:5174/` y confirmar `CONNECTED`, `runtime_mode=jetson_replay`, `mode=monitor`, cambio visual repetido de Base entre 90° y 125°, y controles Home/Saludo/Rutina/Cancelar/sliders deshabilitados. La UI original en 5173 sigue apuntando al backend local en 8765.
 
 La captura es solo **replay de una simulación generada en Jetson** y no streaming de sensores, medida física ni control de servos. OE sigue alto (3.3 V), alimentación externa de motores desconectada/apagada y `main` intacta.
+
+## 21. Paso 9.41: replay Jetson visible en React; maximo por comprobar (30-10-2026)
+
+**Éxito visual confirmado:** el usuario abrió `http://127.0.0.1:5174/` y confirmó que el brazo 3D se ve bien y su Base se mueve de forma repetida. El modo debería leer el servidor Mac `ws://127.0.0.1:8767` y deshabilitar acciones al detectar `jetson_replay` / `monitor`. La confirmación del movimiento y renderizado 3D **no equivale a comprobar los valores o bloqueo de cada control**.
+
+**Diferencia reportada:** el usuario describió un movimiento **90°→180°→90°**, mientras que la demo emitida en la Jetson y el código de la rama especifican **90°→125°→90°**. El límite de Base es 170° y `robotModel.js` calcula rotación 3D relativa a Home (Base 90°). No hay evidencia de lectura real de 180° ni movimiento físico: tratar el desfase como **pendiente de diagnóstico**, no corregir por suposición.
+
+**Próximo paso 9.42:** prueba WebSocket Mac de solo recepción en puerto 8767 durante unos segundos, registrar mínimo/máximo de `servos.base.current` y `target`, confirmar `runtime_mode=jetson_replay`, `mode=monitor`, origen simulado y seis ejes `measured=false`. Si máximo 125°, aclarar que «180» fue estimación visual o una lectura de UI distinta y pedir captura del valor exacto. Confirmar también que todos los controles aparecen deshabilitados.
+
+**Seguridad y alcance:** WebSocket de monitor de solo lectura en loopback; replay matemático, sin servos ni cámara. OE alto a 3.3 V, alimentación de motores apagada, `main` intacta.
