@@ -420,3 +420,13 @@ Captura posterior a ejecutar el script de comprobacion de controles sin conexion
 **Estado de validacion:** reconexion ante caida del puerto confirmada, bloqueo de los 10 controles mientras offline **todavia sin evidencia**. Proximo paso: devolver un resultado como valor de expresion en DevTools o habilitar logs, confirmar `reconnecting`, cuatro botones deshabilitados y seis deslizadores deshabilitados antes de volver a levantar el monitor.
 
 No energizar servos, no habilitar PWM y no alterar `main`.
+
+## 26. Paso 9.50b: 10 controles bloqueados con monitor apagado (30-10-2026)
+
+**Evidencia de Chrome DevTools compartida por el usuario:** con el proceso de monitor `ws://127.0.0.1:8767` apagado, la expresion JavaScript de solo lectura devolvio `Estado: reconnecting | Botones: 4/4 | Deslizadores: 6/6 | OFFLINE_CONTROLES_BLOQUEADOS_OK`. Se verifico por DOM que cuatro botones y seis sliders tenian el atributo `disabled=true` durante la perdida de enlace, mientras el estado seguia en reconexion.
+
+**Resultado confirmado:** comportamiento offline seguro de la **interfaz de reproduccion simulada**: detecta desconexion y mantiene los controles deshabilitados. Los avisos `ERR_CONNECTION_REFUSED` mostrados en DevTools corresponden a los reintentos esperados de una conexion al puerto parado. Esta validacion no prueba un enclavamiento electrico, sensores, paro de emergencia ni movimientos fisicos.
+
+**Siguiente prueba (9.51):** sin recargar la pagina, relanzar el monitor pasivo desde la Mac usando SSH y el emisor JSONL existente. Esperado `JETSON_REPLAY_MONITOR_READY ws://127.0.0.1:8767`, paso automatico de `RECONNECTING` a `CONNECTED`, reanudacion del replay de Base entre 90° y 125° y controles 10/10 todavia deshabilitados. No afirmar recuperacion hasta recibir evidencia del usuario.
+
+Continuar con V+ desconectada, OE alto a 3.3 V y `main` sin modificaciones.
