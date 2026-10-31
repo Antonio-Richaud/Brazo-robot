@@ -1,6 +1,7 @@
 # Estado del proyecto y documento de continuidad — Brazo Robot + Jetson Nano
 
-**Fecha de corte:** 26 de octubre de 2026  
+**Fecha de corte inicial:** 26 de octubre de 2026  
+**Última actualización:** 30 de octubre de 2026 (PCA9685/I²C)  
 **Repositorio:** https://github.com/Antonio-Richaud/Brazo-robot  
 **Rama de trabajo actual:** feat/jetson-nano-physical-ai  
 **Punto de partida del código:** main, commit 8251aa902c04192c4e1d8ed143515d59bfdd7f7a  
@@ -21,9 +22,11 @@ El objetivo es un **sandbox de IA/robótica física**: brazo de seis grados de l
 - Se verificaron CUDA 10.2.300, cuDNN 8.2.1, TensorRT 8.2.1.8 y OpenCV 4.1.1.
 - Se instaló pip/venv de Python 3.6 y se creó un entorno virtual independiente para usar las bibliotecas NVIDIA.
 - Se clonó el repositorio y se seleccionó una rama nueva específica de Jetson.
-- **No** se ha instalado el runtime del proyecto en Jetson, conectado la D435i, energizado el brazo desde Jetson ni movido servos.
+- Se conectó el PCA9685 a la Jetson por J6 e I²C bus 1: dirección 0x40 detectada, MODE1/MODE2/PRE_SCALE validados, frecuencia nominal 50 Hz preparada y salidas FULL OFF confirmadas en canales 0 y 15. OE está conectado físicamente a 3.3 V según la comprobación de cableado comunicada por el usuario.
+- Se agregó jetson/pca9685_safe.py (diagnóstico solo lectura y comando exclusivo FULL OFF, sin orden de armado/movimiento) y nueve pruebas con I²C simulado; **pendiente ejecutarlo en la Jetson**.
+- **No** se ha instalado el runtime completo, conectado la D435i, energizado el brazo desde Jetson ni movido servos.
 
-**Primera tarea de la siguiente sesión:** sincronizar la documentación en la Jetson y diseñar el adaptador de control seguro, con modo de simulación/sin energía antes de las pruebas I2C o de los motores. No instalar requirements.txt sobre Python 3.6.
+**Primera tarea de la siguiente sesión:** sincronizar en la Jetson los últimos cambios de la rama y ejecutar python3 jetson/pca9685_safe.py status (solo lectura), seguido de las pruebas unitarias. Después diseñar el adaptador de control seguro, sin alimentar motores. No instalar requirements.txt sobre Python 3.6.
 
 ## 2. Objetivo y alcance funcional
 
@@ -163,7 +166,7 @@ El Python **del sistema de JetPack** es 3.6.9 y sus bibliotecas TensorRT pertene
 | Rama Jetson | feat/jetson-nano-physical-ai |
 | Cámara D435i en Jetson | Sin probar |
 | librealsense/pyrealsense2 en Jetson | Sin instalar/verificar |
-| PCA9685 conectado directamente a Jetson | No |
+| PCA9685 conectado directamente a Jetson | **Sí, solamente conexión lógica I²C 3.3 V y pruebas de registros**; 0x40 responde |
 | Movimiento de servos desde Jetson | No |
 | IA autónoma / planeación | No |
 | Paro de emergencia físico instalado | No confirmado; debe verificarse antes de energizar |
@@ -271,8 +274,10 @@ PR Raspberry Pi 4: https://github.com/Antonio-Richaud/Brazo-robot/pull/4
 
 ### Fase C — Integración control físico
 
-- [ ] Verificar buses I2C y niveles de lógica Jetson/PCA9685 sin alimentación de servos.
-- [ ] Implementar adaptador Jetson para PCA9685 de forma aislada, con PWM deshabilitado por defecto.
+- [x] Comprobar comunicación I2C 0x40, registros, 50 Hz y FULL OFF sin alimentación de servos (no se midieron niveles eléctricos con instrumento).
+- [x] Incorporar utilidad inicial de diagnóstico y FULL OFF, sin API de armado (jetson/pca9685_safe.py; pruebas unitarias simuladas).
+- [ ] Validar la utilidad y nueve pruebas unitarias en la Jetson real.
+- [ ] Implementar futuro adaptador Jetson de control, con armado explícito y PWM deshabilitado por defecto.
 - [ ] Añadir interruptor de corte físico de potencia y protocolo de arranque seguro.
 - [ ] Probar cada servo individualmente con fuente externa y límites calibrados.
 - [ ] Validar Home, telemetría, pérdida de conexión y paro físico.
@@ -297,7 +302,7 @@ PR Raspberry Pi 4: https://github.com/Antonio-Richaud/Brazo-robot/pull/4
 
 **En un nuevo chat o sesión de soporte, aportar:**
 
-> Estamos trabajando en Antonio-Richaud/Brazo-robot, rama feat/jetson-nano-physical-ai. La Jetson Nano 2GB ya tiene JetPack 4.6.1, Ubuntu 18.04.6, L4T R32.7.1, Python 3.6.9, CUDA 10.2.300, TensorRT Python 8.2.1.8, OpenCV 4.1.1 y el venv ~/robot-lab/.venv-jetson con pip 21.3.1; SSH funciona en antonio@jetson-nano.local. El repo está en ~/robot-lab/Brazo-robot. Leer docs/06-bitacora-instalacion-jetson-nano.md y docs/07-estado-y-continuidad-del-proyecto.md. No se ha conectado D435i ni PCA9685 a la Jetson, no se han movido servos, el backend actual necesita Python moderno y no debe instalarse sobre Python 3.6. Continuar **un paso a la vez**, solicitando salidas de comandos antes de proceder; mantener main intacta.
+> Estamos trabajando en Antonio-Richaud/Brazo-robot, rama feat/jetson-nano-physical-ai. La Jetson Nano 2GB ya tiene JetPack 4.6.1, Ubuntu 18.04.6, L4T R32.7.1, Python 3.6.9, CUDA 10.2.300, TensorRT Python 8.2.1.8, OpenCV 4.1.1 y el venv ~/robot-lab/.venv-jetson con pip 21.3.1; SSH funciona en antonio@jetson-nano.local. El repo está en ~/robot-lab/Brazo-robot. Leer docs/06-bitacora-instalacion-jetson-nano.md, docs/07-estado-y-continuidad-del-proyecto.md y docs/08-jetson-pca9685-i2c-pruebas.md. La D435i no se ha conectado; el PCA9685 SÍ se ha conectado por I2C 0x40 a 3.3 V (OE alto), pero no se han movido servos, el backend actual necesita Python moderno y no debe instalarse sobre Python 3.6. Continuar **un paso a la vez**, solicitando salidas de comandos antes de proceder; mantener main intacta.
 
 Comandos mínimos de arranque de sesión:
 
@@ -310,6 +315,7 @@ cd ~/robot-lab/Brazo-robot
 git status -sb
 git pull --ff-only origin feat/jetson-nano-physical-ai
 git log -1 --oneline
+python3 jetson/pca9685_safe.py status  # Diagnostico solamente, sin escribir
 
 # Comprobar entorno NVIDIA sin instalar nada:
 source ~/robot-lab/.venv-jetson/bin/activate
@@ -331,5 +337,6 @@ Si el estado Git tiene cambios locales, **no hacer reset --hard** ni descartar a
 - [04 — Diseño de RealSense en Jetson](04-realsense-jetson.md)
 - [05 — Manual de uso y pruebas](05-manual-de-uso-y-pruebas.md)
 - [06 — Bitácora de instalación efectiva de la Jetson](06-bitacora-instalacion-jetson-nano.md)
+- [08 — Cableado Jetson J6, diagnóstico PCA9685 y seguridad](08-jetson-pca9685-i2c-pruebas.md)
 
 Este documento refleja lo confirmado hasta el 26-10-2026; versiones, IP, servicios y hardware deben volverse a consultar si transcurre tiempo o se cambia la instalación.
