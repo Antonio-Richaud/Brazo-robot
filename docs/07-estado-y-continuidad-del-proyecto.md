@@ -276,7 +276,8 @@ PR Raspberry Pi 4: https://github.com/Antonio-Richaud/Brazo-robot/pull/4
 - [ ] Diseñar límites de aceleración y watchdog independientes de la aplicación para el hardware real.
 - [x] Ejecutar las pruebas del backend moderno en la Mac con Python 3.12.13: 7/7 `unittest` OK; servidor iniciado explícitamente en simulación, conexión TCP `127.0.0.1:8765` comprobada.
 - [x] Instalar dependencias frontend, corregir 11 alertas de auditoría, validar lint y build en Mac: producción 0, desarrollo 6 moderadas en árbol ESLint/minimatch; commit `999367e` publicado en rama Jetson.
-- [ ] Verificar intercambio WebSocket y visualización 3D del navegador en la Mac; aún no verificados.
+- [x] Abrir el dashboard 3D en `http://127.0.0.1:5173/` en Mac; el usuario confirmó que la interfaz se visualiza correctamente (paso 9.31).
+- [ ] Verificar intercambio WebSocket y estado real de seis servos en el navegador o cliente de solo lectura; aún no verificados.
 - [x] Estudiar y probar pines J6 y comunicación I2C PCA9685 en Jetson Nano 2GB, sin alimentar motores.
 
 ### Fase C — Integración control físico
@@ -368,7 +369,7 @@ Se siguieron los pasos 9.18–9.30, validados con salidas reales en la MacBook A
 | Auditoría npm | Inicial: 17 (10 moderadas, 7 altas); posterior: 6 moderadas de desarrollo (ESLint/`minimatch`); **producción 0** |
 | GitHub | Commit `999367e`: solo `control-center/frontend/package-lock.json`, publicado en la rama de trabajo; `main` no modificado |
 
-**Alcance de la comprobación:** escuchar TCP **no equivale** a verificar un WebSocket correcto. El frontend aún no se ha arrancado ni revisado visualmente. Queda pendiente investigar `minimatch` y la versión de ESLint sin soporte sin usar actualizaciones forzadas.
+**Alcance de la comprobación:** el frontend ya se inició y el usuario confirma que la interfaz 3D se visualiza bien en `127.0.0.1:5173` (paso 9.31). Escuchar TCP y ver la interfaz **no equivale** a verificar el protocolo WebSocket o que los seis servos reciban estado del backend. El siguiente paso es recibir un snapshot WebSocket con un cliente local **de solo lectura**, verificar `runtime_mode=simulation`, nombres de los seis ejes y `measured=false`. Queda pendiente investigar `minimatch` y la versión de ESLint sin soporte sin usar actualizaciones forzadas.
 
 **Próximo paso de una sola ejecución en Mac:** después de sincronizar nuevos commits de documentación con `git pull --ff-only origin feat/jetson-nano-physical-ai`, iniciar en otra terminal:
 ```bash
