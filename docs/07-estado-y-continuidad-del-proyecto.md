@@ -534,3 +534,11 @@ El monitor continúa siendo replay matemático de solo lectura; mantener OE alto
 **Próximo paso:** Mac `git pull --ff-only` de `feat/jetson-nano-physical-ai`, `npm run lint` + `npm run build` y DevTools en la segunda instancia 5174 tras limpiar consola/recargar. Verificar si desaparece la advertencia de WebSocket, si `CONNECTED` y la animación 3D continúan, y si permanece el aviso upstream `THREE.Clock` (conocido/no crítico). **No afirmar resultado antes de nueva evidencia.**
 
 Seguridad: la reproduccion es matemática, con controles bloqueados y WebSocket del monitor sin comando. OE alto (3.3 V), servos sin alimentación y rama `main` intacta.
+
+## 28. Paso 9.48: lint y build del cliente WebSocket correctos (30-10-2026)
+
+El usuario confirmó mediante salida real de la Mac que el cambio de `control-center/frontend/src/useRobotSocket.js` se actualizó por `git pull --ff-only` desde `45cd2ff` hasta `2cf0046`, sin conflictos. En `control-center/frontend`, `npm run lint` finalizó sin errores; `npm run build` (Vite 8.3.5) compiló **571 módulos correctamente en 467 ms**, con nuevos hashes de bundles `index-BtmcOHbO.js` y `RobotScene-DPwhWKWV.js`.
+
+**Alcance:** queda confirmado que el nuevo ciclo de conexión WebSocket no rompe el lint ni la compilación. **No está verificado aún** que desaparezca en Chrome la advertencia `WebSocket is closed before the connection is established`, que se mantenga `CONNECTED` tras recarga, o que continúe la animación; se requiere una prueba de ejecución en el dashboard `http://127.0.0.1:5174/` con DevTools (todos los niveles, limpiar y recargar). El aviso `THREE.Clock` es un asunto separado de dependencia upstream y puede continuar sin impedir la funcionalidad.
+
+**Siguiente comprobación 9.49:** observar consola del segundo dashboard con el monitor WebSocket `8767` activo; confirmar ausencia de aviso de cierre temprano, enlace `CONNECTED`, escena animada y controles bloqueados. Mantener `main` intacta, OE alto a 3.3 V y potencia externa de servos apagada.
