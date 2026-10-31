@@ -104,3 +104,28 @@ Resultado esperado: `Canales FULL OFF: 16/16` y `TODOS DESHABILITADOS: SI`. La h
 Si algun servo se mueve inesperadamente, aparece olor, humo, calor anormal o ruido electrico, cortar alimentacion **con el interruptor/desconexion fisica segura**, no tocando bornes ni cables energizados. No ejecutar `disable-all`, pulsos o comandos de movimiento durante esta comprobacion.
 
 **Siguientes decisiones:** confirmar estado de los servos y de la desconexion fisica de potencia, y planificar calibracion de un servo a la vez. Trabajar solo en `feat/jetson-servo-power-safety`.
+
+## 8. Paso 10.2 confirmado: PCA9685 FULL OFF con fuente conectada (31 de octubre de 2026)
+
+El usuario ejecuto desde Mac sobre la Jetson real `ssh -T -o ConnectTimeout=10 antonio@jetson-nano.local 'cd "$HOME/robot-lab/Brazo-robot" && python3 jetson/pca9685_safe.py status'` despues de reportar alimentacion de la entrada de potencia V+ con fuente nominal 5 V / 10 A. La conexion SSH funciono (se mostro solo la advertencia ya conocida de negociacion sin intercambio poscuantico).
+
+**Salida observada en la Jetson:**
+
+```text
+=== PCA9685 /dev/i2c-1 / 0x40 ===
+MODE1: 0x01
+MODE2: 0x04
+PRE_SCALE: 0x79
+Canales FULL OFF: 16/16
+TODOS DESHABILITADOS: SI
+OE: NO verificable por I2C; mantener OE -> 3.3 V
+IMPORTANTE: FULL OFF no reemplaza un corte fisico de potencia
+```
+
+**Resultado:** lectura I2C correcta de 16/16 canales con FULL OFF, ya con alimentacion de potencia reportada presente. No se escribio ningun registro, no se habilito PWM, no se comprobo ningun movimiento fisico. El bus indica ~50 Hz nominales por `PRE_SCALE`, no es medicion instrumental de una salida.
+
+**No verificado todavia:** tension real V+ DC y polaridad con multimetro; nivel fisico de OE respecto a GND; integridad del sistema de corte de potencia, puesta a tierra/protecciones y corriente bajo carga. Que el comando lea FULL OFF no demuestra una condicion electrica segura ante cableado, alimentacion o servo defectuoso.
+
+**Puerta de entrada al siguiente paso:** comprobar disponibilidad de multimetro y corte fisico accesible de V+; revisar la salida DC y el estado OE unicamente en el lado de baja tension, evitando terminales AC. Si L/N/PE estan expuestos, no hacer mediciones con la fuente energizada; solicitar revision de una persona electricamente competente. No retirar OE ni enviar PWM hasta validar condiciones previas y planificar un servo de prueba individual.
+
+La rama activa de trabajo es `feat/jetson-servo-power-safety`; `main` permanece como linea base ya fusionada.
