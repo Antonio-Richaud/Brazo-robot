@@ -1,7 +1,7 @@
 # Jetson Nano 2GB ↔ PCA9685: instalación I²C y pruebas sin motores
 
 **Actualizado:** 30 de octubre de 2026  
-**Estado:** conexión lógica I²C real comprobada, registros leídos/escritos y utilidad `status` ejecutada exitosamente sobre la Jetson real (16/16 canales FULL OFF); PWM inhabilitado; no se ha energizado la fuente de servos ni probado movimiento.  
+**Estado:** comunicación I²C, escritura segura `disable-all`, lectura `status` (16/16 canales FULL OFF) y nueve pruebas unitarias comprobadas en la Jetson real; no se ha energizado la fuente de servos ni probado movimiento.  
 **Rama:** feat/jetson-nano-physical-ai  
 **Siguiente documento:** [07-estado-y-continuidad-del-proyecto.md](07-estado-y-continuidad-del-proyecto.md).
 
@@ -214,7 +214,7 @@ OE: NO verificable por I2C; mantener OE -> 3.3 V
 IMPORTANTE: FULL OFF no reemplaza un corte fisico de potencia
 ~~~
 
-**Conclusión:** el programa de inspección funciona y lee los 16 canales desde la Jetson. El estado del pin OE no se ha medido eléctricamente. La acción `disable-all` del programa todavía no se ha ejecutado en la Jetson real. Las nueve pruebas unitarias **se ejecutaron después con éxito** sobre Python 3.6 de la Jetson: 9/9 aprobadas en 0.003 s (`OK`). Ninguna de ellas energiza motores o modifica el PCA9685 real.
+**Conclusión:** el programa de inspección funciona y lee los 16 canales desde la Jetson. El estado del pin OE no se ha medido eléctricamente. La acción `disable-all` del programa **ya se ejecutó con éxito en la Jetson real**, confirmando FULL OFF en los 16 canales. Las nueve pruebas unitarias **se ejecutaron después con éxito** sobre Python 3.6 de la Jetson: 9/9 aprobadas en 0.003 s (`OK`). Ninguna de ellas energiza motores o modifica el PCA9685 real.
 
 ### 5.1. Ejecución de las nueve pruebas en la Jetson Nano real
 
@@ -243,13 +243,37 @@ Ran 9 tests in 0.003s
 OK
 ~~~
 
-**Alcance:** se validó compatibilidad y lógica con un bus simulado en Python 3.6 de la Jetson. Esto **no valida eléctricamente OE, V+ ni el movimiento físico de un servo**. La acción `disable-all` contra el hardware real sigue pendiente.
+**Alcance:** se validó compatibilidad y lógica con un bus simulado en Python 3.6 de la Jetson. Esto **no valida eléctricamente OE, V+ ni el movimiento físico de un servo**. La acción `disable-all` contra el hardware real **se verificó después con éxito**.
+
+### 5.2. Validación del comando `disable-all` contra el PCA9685 real
+
+El usuario ejecutó en la Jetson (después de actualizar al commit `05f0e0a`):
+
+~~~bash
+python3 jetson/pca9685_safe.py disable-all
+~~~
+
+Salida observada:
+
+~~~text
+FULL OFF aplicado y comprobado en los 16 canales
+=== PCA9685 /dev/i2c-1 / 0x40 ===
+MODE1: 0x01
+MODE2: 0x04
+PRE_SCALE: 0x79
+Canales FULL OFF: 16/16
+TODOS DESHABILITADOS: SI
+OE: NO verificable por I2C; mantener OE -> 3.3 V
+IMPORTANTE: FULL OFF no reemplaza un corte fisico de potencia
+~~~
+
+**Confirmado:** el dispositivo real aceptó la escritura global ALL_LED_OFF_H y el programa verificó FULL OFF individual en los 16 canales. No se ha medido nivel físico de OE con instrumental ni se ha probado paro de emergencia. Ningún motor alimentado o movido.
 
 ## 6. Próximas pruebas y requisitos antes de mover el brazo
 
 1. [Completado] Sincronizar la rama en la Jetson, ejecutar status (solo lectura) y verificar los 16 canales.
 2. [Completado] Probar la batería de nueve unidades con Python 3.6 de JetPack (9/9, `OK`, 0.003 s).
-3. [Pendiente] Ejecutar `python3 jetson/pca9685_safe.py disable-all` en la Jetson real manteniendo OE en alto y V+ sin alimentar; volver a inspeccionar FULL OFF 16/16.
+3. [Completado] Ejecutar `python3 jetson/pca9685_safe.py disable-all` en la Jetson real; FULL OFF 16/16, MODE1=0x01, MODE2=0x04, PRE_SCALE=0x79.
 4. Diseñar una capa de software con estado DESARMADO inicial, validación de límites, timeout/watchdog y corte seguro ante fallos. No derivar la implementación de código ESP32 sin validar la diferencia de plataforma.
 5. Antes de alimentar servos: verificar tensión real de VCC/V+, polaridad de la fuente, tierra común, orden de los terminales de cada servo y dirección de sus conectores.
 6. Instalar y probar un mecanismo físico para cortar la alimentación de los servos (emergencia). OE es una protección de señal, no un corte de potencia.
