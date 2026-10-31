@@ -426,9 +426,13 @@ respuestas observadas, está en
   No se ha probado ningún movimiento.
 - En la rama Jetson se agregó jetson/pca9685_safe.py, un módulo compatible
   con Python 3.6 para consulta y bloqueo por FULL OFF, y nueve pruebas con
-  transporte simulado; **pendiente ejecutar en la Jetson real**.
+  transporte simulado; **la utilidad `status` ya ejecutada con éxito en la Jetson real; las nueve pruebas unitarias aún pendientes**.
 
-**Estado para la siguiente sesión:** ejecutar en la Jetson
-python3 jetson/pca9685_safe.py status después de sincronizar la rama.
-Es solo lectura. No retirar OE de 3.3 V ni conectar la alimentación
+**Estado confirmado el 30-10-2026:** en la Jetson se ejecutó
+`python3 jetson/pca9685_safe.py status` con éxito tras actualizar el repositorio:
+MODE1=0x01, MODE2=0x04, PRE_SCALE=0x79,
+`Canales FULL OFF: 16/16` y `TODOS DESHABILITADOS: SI`.
+**Siguiente verificación pendiente:** las nueve pruebas unitarias con
+`python3 -m unittest discover -s jetson/tests -v`.
+No retirar OE de 3.3 V ni conectar la alimentación
 de los servos hasta diseñar y verificar el sistema de armado y corte físico.
