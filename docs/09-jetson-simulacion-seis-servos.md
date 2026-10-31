@@ -302,3 +302,13 @@ El puerto 8767 pertenece exclusivamente al monitor de reproducción Mac en loopb
 **Aún no comprobado:** conexión desde React, animación 3D de la Base, bloqueo visual de los controles y UX del modo replay. Se propone iniciar una **segunda instancia de Vite en 5174**, con `VITE_ROBOT_WS_URL=ws://127.0.0.1:8767` únicamente en el comando de arranque (sin editar `.env` y sin alterar la instancia 5173). Verificar en navegador que `Runtime=jetson_replay`, `Modo=monitor`, `CONNECTED`, trayectoria visual 90→125→90 y controles deshabilitados.
 
 No interpretar este replay de una demo finita como telemetría continua ni medición física. Mantener alimentación de servos apagada, OE alto a 3.3 V y rama `main` sin cambios.
+
+## 15. Paso 9.41: dashboard replay 3D visible (desfase de angulo por verificar)
+
+**Confirmación visual del usuario (30-10-2026):** el segundo dashboard en `http://127.0.0.1:5174/` **se ve bien y el brazo virtual está en movimiento repetido**. Esto confirma visualmente el camino Jetson (demo matemática) → SSH (13 JSONL) → monitor de replay Mac (WebSocket `127.0.0.1:8767`) → UI React/Three.js. El usuario describió el recorrido como **«90 a 180 a 90»**.
+
+**Discrepancia abierta:** el código verificado establece Base `90→125→90` y el validador pasivo rechazó máximos inesperados en las pruebas. El límite configurado para Base es 170°, y el modelo 3D usa `degToRad(base.current - 90)`; por tanto el máximo esperado de la rotación **relativa** del modelo es 35°. Los **180° reportados por el usuario no se han corroborado en valores numéricos**. No etiquetar este resultado como recorrido de 180° ni modificar límites para acomodarlo.
+
+**Siguiente verificación 9.42:** recibir estados WebSocket de `ws://127.0.0.1:8767` desde un cliente Mac **solo lectura** durante varios segundos; confirmar `runtime_mode=jetson_replay`, `mode=monitor`, rango Base `90..125°`, seis servos `measured=false` y fuente de datos simulada. Aclarar aparte que Home/Saludo/Rutina/Cancelar/sliders realmente aparecen deshabilitados; la confirmación visual genérica no acredita cada control.
+
+El replay es de una demo almacenada de 13 tramas, no streaming de sensores ni una lectura física. Mantener el monitor abierto, OE alto a 3.3 V, servos sin alimentación externa y `main` sin modificaciones.
