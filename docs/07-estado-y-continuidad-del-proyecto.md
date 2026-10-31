@@ -476,3 +476,13 @@ La captura es solo **replay de una simulación generada en Jetson** y no streami
 Esto resuelve el alcance **numérico** de la diferencia entre los «180°» descritos visualmente y los 125° configurados: la telemetría **no publicó 180°**. No se estableció si esa observación fue estimación visual o una lectura distinta; no alterar parámetros sin evidencia adicional.
 
 **Siguiente paso 9.43:** comprobar en el navegador los cuatro botones de acción y los seis sliders deshabilitados durante `jetson_replay / monitor`. El bloqueo está implementado en `App.jsx` y el WebSocket no tiene handler de comandos, pero la confirmación visual de los controles aún no se ha recibido. Esta secuencia es simulación/replay de Jetson a Mac, **no** medición física ni control de motores. OE 3.3 V, V+ apagada y `main` sin cambios.
+
+## 23. Paso 9.43: controles UI de replay bloqueados (confirmado, 30-10-2026)
+
+**Evidencia:** captura real de la consola de Chrome compartida por el usuario, tomada con el segundo dashboard en `http://127.0.0.1:5174/`. Se ejecutó una inspección DOM de `.action-grid button` y `.servo-list input[type="range"]`: los cuatro botones **Home, Saludo, Rutina y Cancelar/Home** devolvieron `disabled=true`, y **los seis sliders** también: `Deslizadores bloqueados: 6 de 6`. Marcador exacto: `VERIFICACION: CONTROLES_BLOQUEADOS_OK`.
+
+**Resultado:** el bloqueo visual de los 10 controles en el modo `jetson_replay` queda comprobado en el navegador. El servidor WebSocket de replay en Mac `127.0.0.1:8767` tiene `command_handler=None` de acuerdo con el código de la rama, y el modo no utiliza ESP32 ni control físico. No atribuirle pruebas de bloqueo del resto de interfaces o seguridad mecánica/electrónica.
+
+**Observación adicional en la captura:** aparecen muchas advertencias repetidas de Three.js (`THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.`), con contador superior de aproximadamente **1163 advertencias** y un indicador de **1 error** cuyo mensaje no se ve. `undefined` después de ejecutar la función de consola es el resultado normal de una IIFE y no evidencia de error. El motivo del error rojo y la recurrencia de las advertencias deben diagnosticarse por separado; no se deben declarar resueltos.
+
+**Próxima tarea recomendada:** inspeccionar el mensaje del error rojo de la consola y, posteriormente, corregir el uso de sombras obsoletas de Three.js con cambios mínimos y pruebas `lint`/`build`, sin alterar la geometría ni comportamiento del brazo 3D. Trabajar solo en la rama `feat/jetson-nano-physical-ai`, sin habilitar PWM, fuente V+ ni bajar OE.
