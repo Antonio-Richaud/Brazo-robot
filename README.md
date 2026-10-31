@@ -32,8 +32,9 @@ registros con los canales en FULL OFF y OE conectado a 3.3 V. Se validaron
 **26/26 pruebas unitarias correctamente en la Jetson con Python 3.6.9**
 (9 del PCA9685 simulado y 17 del simulador aislado de seis ejes).
 La demostración CLI del simulador también se verificó en Jetson: trayectoria de base 90° a 125° en cinco pasos; estado final `DISARMED`, `hardware_enabled: false`. Esto **no**
-significa que el control directo de servos esté terminado: los motores siguen
-sin alimentar y no se han probado movimientos. El nodo RealSense y el backend
+significa que el control directo de servos esté terminado: al 30-10, los motores seguian
+sin alimentar y no se habian probado movimientos. La fase del 31-10 actualiza
+el estado de alimentacion, sin habilitar PWM ni realizar movimientos fisicos. El nodo RealSense y el backend
 moderno tampoco se han desplegado en la Jetson; ese backend requiere Python
 moderno y no debe instalarse directamente sobre Python 3.6 de JetPack.
 
@@ -43,6 +44,24 @@ moderno y no debe instalarse directamente sobre Python 3.6 de JetPack.
 - [Utilidad de inspección segura compatible con Python 3.6](jetson/pca9685_safe.py).
 - [Simulación aislada de seis servos, sin acceso a hardware](docs/09-jetson-simulacion-seis-servos.md).
 
+## Estado de continuidad (31-10-2026): potencia y plan 2N2222
+
+La fuente nominal 5 V / 10 A ya alimenta V+ del PCA9685 segun el usuario;
+Jetson conserva sus 3.3 V de logica y el STOP fisico corta la entrada AC
+de la fuente de potencia sin afectar al eliminador independiente Jetson.
+La Jetson confirmo FULL OFF 16/16 y se verifico la presencia de
+`Jetson.GPIO` 2.0.17. **Los seis servos permanecen montados/acoplados;
+no se ha ordenado movimiento fisico.** El OE continua unido directamente
+al pin fisico J6-17 (3.3 V) y NO debe manipularse con el equipo energizado.
+
+La siguiente sesion empieza por el **plan**, no por mover servos ni
+ejecutar `--mode hardware`: [11 - Plan de habilitacion OE con 2N2222,
+watchdog e integracion por etapas](docs/11-plan-habilitacion-fisica-2n2222.md).
+Bitacora de potencia, mediciones y STOP:
+[10 - Seguridad de fuente 5 V / 10 A](docs/10-seguridad-fuente-servos-5v-10a.md).
+
+Apagado seguro: activar STOP de potencia antes de apagar Jetson;
+desde Mac `ssh -t antonio@jetson-nano.local 'sudo shutdown -h now'`.
 ## Arquitectura
 
 ```mermaid
