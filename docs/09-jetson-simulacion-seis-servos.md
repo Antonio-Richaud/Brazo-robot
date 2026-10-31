@@ -343,3 +343,13 @@ La verificación visual/DOM, sumada a `command_handler=None` del WebSocket del m
 La misma captura contiene repetidas advertencias de Three.js sobre `PCFSoftShadowMap` obsoleto y un contador de un error rojo, cuya descripción no es visible. Este aspecto se deja expresamente pendiente de diagnóstico de consola; no asumir que el mensaje `undefined` devuelto por el bloque de inspección es un error (es normal).
 
 **Próximo paso:** identificar el error rojo en DevTools y revisar en una etapa separada el warning repetitivo de sombras sin romper la escena. Mantener `OE` alto, alimentación externa de servos apagada y rama `main` intacta.
+
+## 18. Paso 9.44: limpieza de errores y advertencias del dashboard 3D (30-10-2026)
+
+Tras cerrar la prueba de controles bloqueados, una captura de DevTools confirmó que el error rojo visible en `:5174` era **404 `/favicon.ico`**. Se observaban además numerosas advertencias repetidas de Three.js por usar la opción obsoleta `PCFSoftShadowMap`.
+
+**Correcciones de código publicadas en la rama, aún sin verificar en navegador:** favicon vectorial en `control-center/frontend/public/favicon.svg`, referencia explícita en `control-center/frontend/index.html` y sombras del `<Canvas>` configuradas como `{ type: THREE.PCFShadowMap }` mediante una constante `SHADOW_SETTINGS` en `control-center/frontend/src/RobotScene.jsx`. La documentación oficial de Three.js recomienda `PCFShadowMap` para las versiones actuales. No se cambió el movimiento, el render geométrico del brazo, los controles ni el backend.
+
+**Siguiente validación única:** actualizar la rama en Mac y ejecutar `npm run lint` + `npm run build`; recargar `http://127.0.0.1:5174/` y revisar en Chrome si el icono SVG responde con HTTP 200 y dejan de aparecer el 404 y las advertencias PCFSoftShadowMap. El dashboard debe seguir recibiendo `runtime_mode=jetson_replay` con controles bloqueados. No asumir éxito antes de la salida del usuario.
+
+Las pruebas siguen siendo exclusivamente de software y replay matemático; no energizar motores ni modificar la rama `main`.
