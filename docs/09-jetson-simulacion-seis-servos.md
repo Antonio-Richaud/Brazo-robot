@@ -263,6 +263,27 @@ No activar la fuente de los servos; conservar OE alto a 3.3 V y `main` intacta.
 - `control-center/backend/tests/test_jetson_demo_monitor.py`: se añadieron **10 pruebas** de aislamiento, bloqueo ante entrada inválida, trayectoria, estado monitor y ausencia de comandos. Total esperado de backend Mac: **39 tests (29 existentes + 10 nuevos)**, sin afirmar éxito hasta ejecución real.
 - Mantener la interfaz local existente conectada a `127.0.0.1:8765` y el nuevo monitor separado a `127.0.0.1:8767`, sin modificar `main`.
 
-**Siguiente verificación (primero solo tests):** actualizar la rama en Mac, ejecutar `control-center/backend/.venv/bin/python -m unittest discover -s tests -v` desde `control-center/backend`, luego `npm run lint` y `npm run build` en `control-center/frontend`. Solo después de confirmarse las pruebas se abrirá el flujo SSH→monitor y una segunda instancia Vite para comprobar movimiento 3D reproducido.
+**Paso 9.39 confirmado en la Mac el 30-10-2026:** tras actualizar la rama, la suite del backend ejecutó **39/39 tests OK en 0.030 s**; `npm run lint` completó sin errores y `npm run build` de Vite 8.3.5 compiló 571 módulos en **539 ms**. `git status -sb` mostró la rama sincronizada y limpia. Estas pruebas no significan que el servicio de monitor o la UI remota ya estén funcionando.
 
 **Seguridad:** sigue apagada la fuente externa de servos; el pin OE del PCA9685 continúa a 3.3 V. El monitor no usa hardware Jetson/ESP32, solo posiciones matemáticas registradas.
+
+
+## 13. Paso 9.40: arranque de monitor replay por SSH (pendiente)
+
+**Prueba propuesta desde Mac**, con los dos servicios originales (backend local :8765 y frontend :5173) intactos. En terminal independiente:
+
+```bash
+cd ~/Documents/GitHub/Brazo-robot
+git pull --ff-only origin feat/jetson-nano-physical-ai
+set -o pipefail
+ssh -T -o ConnectTimeout=10 antonio@jetson-nano.local \
+  'cd "$HOME/robot-lab/Brazo-robot" && python3 jetson/telemetry_stream.py --demo' \
+  | control-center/backend/.venv/bin/python \
+      control-center/backend/jetson_demo_monitor.py --stdin-demo
+```
+
+**Resultado esperado, no verificado todavía:** `JETSON_REPLAY_MONITOR_READY ws://127.0.0.1:8767`. El monitor valida las 13 tramas completas antes de comenzar a reproducirlas de manera repetida, hasta detener el proceso con `Ctrl+C`. Si SSH falla o el JSONL resulta inválido, **no inicia** el servidor WebSocket del monitor.
+
+Solo después del arranque confirmado se probará el frontend en puerto 5174, apuntando explícitamente a WebSocket 8767. Los datos se generaron por simulación en Jetson, no proceden de sensores ni actuadores; el WebSocket de reproducción tiene `command_handler=None` y el frontend deshabilita controles al detectar `jetson_replay` / `monitor`.
+
+Mantener OE a 3.3 V, fuente externa de servos apagada, sistema JetPack sin actualizaciones arriesgadas y rama `main` intacta.
