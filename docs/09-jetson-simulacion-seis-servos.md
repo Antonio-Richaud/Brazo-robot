@@ -218,3 +218,20 @@ El usuario ejecutó en la Mac un **cliente WebSocket de solo lectura** después 
 Resultado literal: `RESULTADO: HOME VERIFICADO`. **Seis de seis ejes correctos, sin medición física ni control PCA9685.** Con ello se cierra la línea base local del Control Center en Mac: WebSocket real, controles visuales, movimiento simulado de Base, coreografía Saludo visual y retorno virtual exacto a Home.
 
 **Paso 9.36 propuesto:** validar acceso Mac→Jetson mediante el SSH existente y emitir un snapshot JSON desde `ArmSimulation().snapshot()` **sin abrir puertos en la Jetson ni generar salidas PWM**. A continuación se podrá definir un contrato versionado de telemetría de solo lectura y un adaptador en Mac con controles deshabilitados para datos remotos. Hasta que se pruebe, no afirmar que Jetson y Mac ya están enlazadas por telemetría.
+
+## 10. Paso 9.36: SSH y preparacion del emisor JSONL
+
+**Paso 9.36 confirmado el 30-10-2026:** la Mac leyo mediante SSH el JSON de `ArmSimulation().snapshot()` en la Jetson Nano 2GB, con Python 3.6.9, seis articulaciones, `state=DISARMED`, `hardware_enabled=false`, `measured=false` y salida final `JETSON_SIMULATION_READONLY_OK`. No se habilito ningun motor ni puerto adicional.
+
+El cliente SSH emitio una advertencia por ausencia de intercambio de claves poscuantico en el servidor antiguo, pero la sesion se establecio correctamente. No modificar JetPack ni el servidor SSH sin revision previa.
+
+**Paso 9.37 preparado en GitHub, aun NO probado en Jetson:**
+
+- `jetson/telemetry_stream.py` es un emisor Python 3.6 de **13 tramas JSONL** exclusivamente por stdout, al ejecutar `--demo` de forma explicita. Simula en RAM la Base 90->125->90 grados, parte de `DISARMED` y termina en `DISARMED`. No lee stdin, no abre red ni accede a I2C, GPIO, serial o PWM.
+- `jetson/tests/test_telemetry_stream.py` agrega **10 pruebas unitarias** a las 26 existentes. No afirmar que son 36/36 satisfactorias hasta obtener la salida de la Jetson.
+- Cada trama publica `schema=brazo.jetson.sim.telemetry`, `schema_version=1`, `source=jetson_simulation`, `sequence`, `state`, `mode=simulation_only`, `fault_reason`, `hardware_enabled=false` y `servos` con seis articulaciones no medidas fisicamente.
+- El estado `SIM_ARMED` dentro de esas tramas es un estado exclusivamente matematico; no habilita la señal OE ni ningun servo.
+
+**Pendiente:** sincronizar y ejecutar las pruebas y el flujo JSONL en la Jetson. Todavia no existe puente entre esta fuente Jetson y el backend/WebSocket/React en Mac. El siguiente desarrollo debe validar esquemas y separar el modo monitor remoto de los controles de movimiento.
+
+Conservar OE alto a 3.3 V, potencia externa de servos apagada y `main` intacta.
