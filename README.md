@@ -31,7 +31,7 @@ registros con los canales en FULL OFF y OE conectado a 3.3 V. Se validaron
 `status` y `disable-all` en el dispositivo real. También se ejecutaron
 **26/26 pruebas unitarias correctamente en la Jetson con Python 3.6.9**
 (9 del PCA9685 simulado y 17 del simulador aislado de seis ejes).
-La demostración CLI del simulador sigue pendiente de validación. Esto **no**
+La demostración CLI del simulador también se verificó en Jetson: trayectoria de base 90° a 125° en cinco pasos; estado final `DISARMED`, `hardware_enabled: false`. Esto **no**
 significa que el control directo de servos esté terminado: los motores siguen
 sin alimentar y no se han probado movimientos. El nodo RealSense y el backend
 moderno tampoco se han desplegado en la Jetson; ese backend requiere Python
