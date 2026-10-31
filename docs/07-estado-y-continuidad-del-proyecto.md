@@ -564,3 +564,13 @@ Conservar OE alto a 3.3 V, servos sin alimentación externa, monitor matemático
 **Siguiente paso 9.50b:** con el monitor 8767 todavia apagado, ejecutar en DevTools de la misma pagina una inspeccion de `disabled` en `document.querySelectorAll('.action-grid button')` y `document.querySelectorAll('.servo-list input[type="range"]')`; exigir 4/4 y 6/6 y que el encabezado siga en `RECONNECTING`. No enviar comandos WebSocket. **Solo entonces** reactivar el monitor en una prueba separada de recuperacion automatica.
 
 Nota: la advertencia no bloqueante `THREE.Clock` continua visible en DevTools; no se debe confundir con los errores esperados `ERR_CONNECTION_REFUSED`. Fuente de motores apagada, OE alto 3.3 V, `main` intacta.
+
+## 31. Paso 9.50b: inspeccion DOM ejecutada pero resultados ocultos (30-10-2026)
+
+El usuario compartio captura de DevTools con el monitor 8767 detenido y multiples `net::ERR_CONNECTION_REFUSED` (esperados). El fragmento JavaScript de inspeccion DOM aparece ejecutado, pero la salida de expresion es solo `undefined`. La consola esta en **`Personalizar niveles`** y muestra **`8 ocultos`**, por lo que los valores impresos con `console.log` no aparecen en la imagen. `undefined` es resultado normal de ejecutar una IIFE sin `return`.
+
+**No se ha confirmado aun** `OFFLINE_CONTROLES_BLOQUEADOS_OK`, ni los conteos 4/4 botones y 6/6 sliders. Evitar cerrar la prueba como aprobada.
+
+**Siguiente comprobacion:** con 8767 apagado, ejecutar una expresion DOM de solo lectura que **devuelva** un objeto/JSON o un marcador literal (en lugar de solo `console.log`), para que su resultado sea visible incluso si la consola filtra mensajes de nivel Log; alternativamente habilitar el nivel Log en DevTools. No enviar comandos ni reactivar aun el monitor. La recuperacion automatica se probara despues de confirmar el bloqueo.
+
+Mantener alimentacion V+ de servos apagada, OE alto a 3.3 V y `main` intacta.
