@@ -71,7 +71,7 @@ def validate_frame(frame: Any, expected_sequence: int) -> dict[str, Any]:
         raise TelemetryValidationError("Solo se aceptan datos simulados")
     if frame["hardware_enabled"] is not False:
         raise TelemetryValidationError("Se rechaza telemetria con hardware habilitado")
-    if frame["state"] not in STATES:
+    if not isinstance(frame["state"], str) or frame["state"] not in STATES:
         raise TelemetryValidationError("Estado no reconocido")
     reason = frame["fault_reason"]
     if reason is not None and (not isinstance(reason, str) or len(reason) > 200):
@@ -140,11 +140,24 @@ def read_demo_stream(lines: Iterable[str]) -> list[dict[str, Any]]:
         ):
             raise TelemetryValidationError(f"{spec.name}: la demo no regreso a Home")
 
+    # Esta demo solo mueve Base; los demas cinco ejes deben permanecer en Home.
+    for frame in frames:
+        for spec in SERVO_SPECS:
+            if spec.name == "base":
+                continue
+            servo = frame["servos"][spec.name]
+            if servo["current"] != spec.home or servo["target"] != spec.home:
+                raise TelemetryValidationError(
+                    f"{spec.name}: movimiento inesperado en demo"
+                )
+
     angles = [frame["servos"]["base"]["current"] for frame in frames]
     if (
         not math.isclose(max(angles), 125.0, abs_tol=0.15)
         or any(right < left for left, right in zip(angles[1:6], angles[2:7]))
         or any(right > left for left, right in zip(angles[6:11], angles[7:12]))
+        or any(abs(right - left) > 7.15
+               for left, right in zip(angles[1:], angles[2:]))
     ):
         raise TelemetryValidationError("Trayectoria simulada de Base inesperada")
 
