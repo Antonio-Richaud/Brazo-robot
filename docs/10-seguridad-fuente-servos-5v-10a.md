@@ -288,3 +288,16 @@ El usuario compartio una fotografia cercana del modulo montado. **Inspeccion vis
 5. **Proxima tarea util sin cables:** disenar y probar en la rama el contrato y las pruebas de un supervisor de seguridad en modo virtual (DISARMED al iniciar, autorizacion explicita, timeout, fault latch, un canal permitido, resto FULL OFF), sin ninguna llamada a hardware; luego concretar materiales y probar la interfaz con el STOP accionado.
 
 **No se modifico ni se habilito ningun motor a raiz de esta fotografia.**
+
+
+## 16. Cierre documental del 31-10-2026 y plan con 2N2222
+
+**El usuario decidio cerrar la sesion y continuar en otro dia.** Confirmo disponer de multiples transistores 2N2222 y solicito plan completo de lo necesario para lograr un sistema fiable, por que y orden de implementacion, con merge de toda la documentacion a `main`.
+
+El diseño queda en [11-plan-habilitacion-fisica-2n2222.md](11-plan-habilitacion-fisica-2n2222.md): arquitectura de pull-up que mantenga OE HIGH, transistor 2N2222 en configuracion de colector abierto para habilitar OE LOW bajo permiso, resistencias dimensionadas tras caracterizar OE, watchdog/interlock independiente de Linux y protocolo de pruebas OFF → un unico canal → primer SG90 de garra ya montado. El 2N2222 **no sustituye** paro fisico ni watchdog; no hay modificaciones al circuito ni firmware en esta fase.
+
+**Motivos de seguridad:** el OE de breakout tipo Adafruit puede estar tirado a LOW por defecto; retirar sin mas la union directa OE→3.3 V lo habilitaria. Conectar GPIO LOW mientras OE esta atado al pin fijo J6-17 de 3.3 V crearia contencion electrica. Todos los servos siguen acoplados y sus HOME son valores logicos no calibrados. El firmware ESP32 arranca escribiendo HOME a los seis: no usarlo como atajo.
+
+**Cierre seguro solicitado:** STOP de potencia AC activado **antes** de apagar Jetson, para evitar que desaparezcan 3.3 V de OE mientras el riel de servos siga activo. SSH desde Mac: `ssh -t -o ConnectTimeout=10 antonio@jetson-nano.local 'sudo shutdown -h now'`. Esperar cierre limpio y desconectar eliminador de Jetson despues. **No consta aun salida del usuario confirmando que haya ejecutado el apagado**; no marcarlo como verificado.
+
+Al reiniciar trabajo: actualizar `main`, crear rama nueva y empezar por Fase A del plan (identificacion de componentes y diseño sin movimiento), no energizar el brazo automaticamente.
