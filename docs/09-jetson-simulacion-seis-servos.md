@@ -250,3 +250,19 @@ Conservar OE alto a 3.3 V, potencia externa de servos apagada y `main` intacta.
 **Próximo test en Mac:** sincronizar rama; ejecutar `.venv/bin/python -m unittest discover -s tests -v` desde `control-center/backend`; después ejecutar el flujo remoto `ssh ... 'cd ... && python3 jetson/telemetry_stream.py --demo' | control-center/backend/.venv/bin/python control-center/backend/jetson_telemetry_reader.py --stdin-demo`, con `set -o pipefail`. Resultado esperado `MAC_JETSON_TELEMETRY_READONLY_OK`, sujeto a comprobación real.
 
 No activar la fuente de los servos; conservar OE alto a 3.3 V y `main` intacta.
+
+## 12. Paso 9.38 confirmado y modo replay 9.39
+
+**Paso 9.38 confirmado por salida real de la Mac (30-10-2026):** la rama se sincronizó por `git pull --ff-only`; el backend Python 3.12 ejecutó **29/29 tests en 0.015 s, OK**. La Mac inició una sesión SSH autenticada con `antonio@jetson-nano.local`, recibió las 13 tramas JSONL del emisor Jetson y el receptor validó `source=jetson_simulation`, versión 1, trayectoria Base `90, 90, 97, 104, 111, 118, 125, 118, 111, 104, 97, 90, 90`, estado final `DISARMED`, `hardware_enabled=False`, `measured=False`. Salida de éxito: `MAC_JETSON_TELEMETRY_READONLY_OK`. La advertencia SSH sobre KEX poscuántico sigue siendo no bloqueante.
+
+**Paso 9.39 implementado en rama, todavía pendiente de pruebas en Mac:**
+
+- `control-center/backend/jetson_demo_monitor.py`: recibe **únicamente** las 13 tramas completas de demostración por `stdin`, validadas antes de abrir el WebSocket; posteriormente las **reproduce localmente** cada 0.1 s, con pausa de 1.5 s entre ciclos, para inspeccionar el gemelo 3D. **Esto es replay de una demostración simulada; NO telemetría en vivo ni posición física**.
+- El monitor solamente escucha en `127.0.0.1:8767`; **no** crea `RobotController`, `SerialManager`, conexión SSH propia, servicios en Jetson ni rutas de control. Instancia WebSocket con `command_handler=None`, por lo que ignora comandos entrantes. Estado publicado: `runtime_mode=jetson_replay`, `mode=monitor`, ESP32 desconectado, seis articulaciones estimadas.
+- `control-center/frontend/src/App.jsx`: reconoce el modo de replay, identifica la escena como **Reproducción Jetson · simulación**, deshabilita todos los controles de movimiento (Home, Saludo, Rutina, Cancelar/Home y deslizadores) y bloquea los envíos desde el componente. El WebSocket del monitor además carece de manejador de comandos.
+- `control-center/backend/tests/test_jetson_demo_monitor.py`: se añadieron **10 pruebas** de aislamiento, bloqueo ante entrada inválida, trayectoria, estado monitor y ausencia de comandos. Total esperado de backend Mac: **39 tests (29 existentes + 10 nuevos)**, sin afirmar éxito hasta ejecución real.
+- Mantener la interfaz local existente conectada a `127.0.0.1:8765` y el nuevo monitor separado a `127.0.0.1:8767`, sin modificar `main`.
+
+**Siguiente verificación (primero solo tests):** actualizar la rama en Mac, ejecutar `control-center/backend/.venv/bin/python -m unittest discover -s tests -v` desde `control-center/backend`, luego `npm run lint` y `npm run build` en `control-center/frontend`. Solo después de confirmarse las pruebas se abrirá el flujo SSH→monitor y una segunda instancia Vite para comprobar movimiento 3D reproducido.
+
+**Seguridad:** sigue apagada la fuente externa de servos; el pin OE del PCA9685 continúa a 3.3 V. El monitor no usa hardware Jetson/ESP32, solo posiciones matemáticas registradas.
