@@ -402,3 +402,13 @@ La única advertencia visible restante es `THREE.THREE.Clock: This module has be
 **Siguiente verificación segura:** comprobar que al detener **solo el monitor de replay** en Mac (`Ctrl+C`, puerto 8767) la UI pasa a `reconnecting`, deja de recibir actualizaciones y los 10 controles siguen deshabilitados; luego comprobar recuperación con el monitor reactivado. Estos pasos no tocan servos reales ni comandos de movimiento.
 
 OE alto a 3.3 V, potencia de servos apagada y `main` intacta.
+
+## 24. Paso 9.50: enlace del replay en RECONNECTING tras cortar servidor (30-10-2026)
+
+El usuario compartio captura de Chrome del segundo dashboard 5174 despues de parar el proceso del monitor Jetson de reproduccion 8767. La cabecera del dashboard indica **`RECONNECTING`**, la escena 3D permanece dibujada y la consola muestra varios `WebSocket connection to ws://127.0.0.1:8767/ failed: net::ERR_CONNECTION_REFUSED`, esperables cuando no escucha ningun servidor en ese puerto. Se observa ademas el aviso independiente `THREE.Clock` (deprecacion de dependencia).
+
+**Resultado parcial:** el cliente detecta perdida de transporte y sigue intentando reconectar, sin caida de pagina. La captura no incluye los controles ni demuestra que dejaron de animarse; evitar afirmar que los 10 controles continuaron deshabilitados sin inspeccion adicional. El codigo React aplica bloqueo por `!socketConnected` y por `jetson_replay`, pero hace falta validar ese estado en DOM durante la desconexion.
+
+**Siguiente verificacion:** ejecutar inspeccion DOM **solo lectura** con monitor aun detenido, contar cuatro botones y seis sliders y comprobar que todos cumplen `disabled=true`. Después, en otro paso, reiniciar la tuberia SSH→monitor y comprobar la recuperacion del estado `CONNECTED`, sin comandos ni actuacion fisica.
+
+Esta prueba no afecta servos ni Jetson I2C. Mantener fuente de motores apagada y OE alto a 3.3 V; no modificar `main`.
