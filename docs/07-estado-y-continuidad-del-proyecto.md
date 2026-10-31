@@ -468,3 +468,11 @@ La captura es solo **replay de una simulación generada en Jetson** y no streami
 **Próximo paso 9.42:** prueba WebSocket Mac de solo recepción en puerto 8767 durante unos segundos, registrar mínimo/máximo de `servos.base.current` y `target`, confirmar `runtime_mode=jetson_replay`, `mode=monitor`, origen simulado y seis ejes `measured=false`. Si máximo 125°, aclarar que «180» fue estimación visual o una lectura de UI distinta y pedir captura del valor exacto. Confirmar también que todos los controles aparecen deshabilitados.
 
 **Seguridad y alcance:** WebSocket de monitor de solo lectura en loopback; replay matemático, sin servos ni cámara. OE alto a 3.3 V, alimentación de motores apagada, `main` intacta.
+
+## 22. Paso 9.42: 27 lecturas WebSocket con rango correcto (30-10-2026)
+
+**Verificado por ejecución real en la Mac:** un cliente Python exclusivamente de lectura recibió 27 mensajes del WebSocket de replay `ws://127.0.0.1:8767`. Todos cumplieron `runtime_mode=jetson_replay`, `mode=monitor`, seis articulaciones y `measured=false` en cada articulación. Se observaron Base `[90, 97, 104, 111, 118, 125]` grados; mínimo 90°, máximo **125°**, objetivos `[90,125]` y salida `REPLAY_BASE_90_125_OK`.
+
+Esto resuelve el alcance **numérico** de la diferencia entre los «180°» descritos visualmente y los 125° configurados: la telemetría **no publicó 180°**. No se estableció si esa observación fue estimación visual o una lectura distinta; no alterar parámetros sin evidencia adicional.
+
+**Siguiente paso 9.43:** comprobar en el navegador los cuatro botones de acción y los seis sliders deshabilitados durante `jetson_replay / monitor`. El bloqueo está implementado en `App.jsx` y el WebSocket no tiene handler de comandos, pero la confirmación visual de los controles aún no se ha recibido. Esta secuencia es simulación/replay de Jetson a Mac, **no** medición física ni control de motores. OE 3.3 V, V+ apagada y `main` sin cambios.
