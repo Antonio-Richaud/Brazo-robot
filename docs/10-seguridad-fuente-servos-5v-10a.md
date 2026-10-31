@@ -181,3 +181,16 @@ Es un **paro aguas arriba de la fuente en el lado de red CA**: al accionarlo, la
 **Seguridad de la entrada AC:** el dispositivo y contactos del STOP tienen que estar dimensionados para la entrada de red, en caja protegida y con cables fijados; confirmar que interrumpe el conductor de fase (no solamente neutro) y **nunca** el conductor de proteccion PE. Una fuente con bornes CA expuestos requiere revision/cableado por profesional competente. No considerar un contacto improvisado equivalente a parada de emergencia certificada.
 
 **Siguiente paso:** observar la caida de V+ con STOP accionado y Jetson encendida, y mantener STOP activado al terminar. No habilitar PWM ni tratar de mover uno o varios servos en esta comprobacion.
+
+
+## 12. Paso 10.5b: corte de potencia y logica independiente confirmados (31 de octubre de 2026)
+
+El usuario aclara: **«Cuando acciono el stop le deja de llegar corriente a las clemas de potencia pero sigue teniendo los 3.3 v de la jetson porque esa sigue encendida»**.
+
+**Estado observado y reportado:** al accionar el paro situado antes de la fuente conmutada de potencia, deja de suministrarse alimentación a las clemas V+ del PCA9685; la Jetson Nano continua encendida con su eliminador independiente, por lo que la alimentación logica 3.3 V permanece. Esto valida funcionalmente la **separacion de alimentacion logica y potencia ante el STOP**, sin necesidad de que el software actue para apagar la fuente.
+
+**Limites:** la respuesta no proporciona una lectura numerica de 0.00 V, tiempo de descarga de condensadores ni certificacion electrica del interruptor, la entrada AC o el conductor PE. No declarar estos puntos comprobados. El estado previo de I2C era FULL OFF 16/16, y el pin OE se habia medido a 3.3 V en funcionamiento. Si el brazo tiene piezas bajo carga, al cortar potencia los ejes pueden liberarse.
+
+**Paso 10.5 cerrado funcionalmente**, manteniendo como pendientes la revision de protecciones AC, capacidad del STOP, control del rearranque y las pruebas mecanicas. No emitir comandos PWM ni retirar OE en esta fase.
+
+**Siguiente paso 10.6 (preparacion, sin movimiento):** seleccionar un unico servo pequeño, preferentemente SG90 del canal 5 (garra), para una futura prueba **desacoplado mecanicamente de la garra o sin carga**, con el brazo estable y sin riesgo de pellizcos. Confirmar que se puede aislar el servo de la mecanica; si no se puede, no probar movimiento desde el software. Toda manipulacion de conectores se hace con la fuente de servos y la Jetson desenergizadas, no solo con STOP. No rearmar STOP hasta definir el control individual con arranque seguro, watchdog, limites y un medio de corte probado.
