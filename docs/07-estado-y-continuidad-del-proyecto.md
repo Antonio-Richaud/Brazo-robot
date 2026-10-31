@@ -594,3 +594,19 @@ Mantener `OE` del PCA9685 alto a 3.3 V, servos sin potencia externa y rama `main
 **Siguiente paso 9.51b:** comprobacion de solo lectura en DevTools del dashboard conectado, observar muestras sucesivas de la lectura de Base para confirmar que varia dentro de 90–125° y que los 4 botones y 6 sliders siguen `disabled=true`. No enviar comandos WebSocket, no tocar servos ni modificar geometría.
 
 Continúa siendo replay matematico no telemetria fisica en tiempo real. Mantener alimentacion de servos apagada, OE alto 3.3 V y rama `main` intacta.
+
+## 34. Paso 9.51b: recuperacion y bloqueo del replay verificados (30-10-2026)
+
+**Evidencia proporcionada por el usuario:** captura de Chrome DevTools de la misma instancia React `http://127.0.0.1:5174/`, sin recargar despues de reiniciar el monitor Jetson (`127.0.0.1:8767`). La comprobacion DOM de solo lectura tomo 40 muestras a intervalos de 150 ms y mostro la salida exacta:
+
+```text
+Estado: connected | Base: 90°–125° | Botones bloqueados: 4/4 | Deslizadores bloqueados: 6/6 | RECONEXION_SEGURA_OK
+```
+
+**Resultado:** conexion recuperada tras parada intencional del monitor, repeticion de la trayectoria simulada de Base confirmada por los valores cambiantes de la UI, cuatro acciones y seis sliders todavia deshabilitados. Queda completado el circuito de pruebas 9.50–9.51b: perdida de servidor → estado `RECONNECTING` → bloqueo offline 10/10 → reinicio del monitor → `CONNECTED` sin recarga → animacion 90–125° restaurada → bloqueo 10/10 mantenido.
+
+La consola conserva una unica advertencia visible de dependencia: `THREE.Clock` deprecado en React Three Fiber/Three.js; no bloquea el resultado. **Esto valida un replay de simulacion Python 3.6 en Jetson que se transfirio una vez por SSH y se reproduce en Mac**, no un flujo de telemetria continua desde Jetson ni sensores angulares o seguridad fisica.
+
+**Siguiente etapa propuesta (todavia NO implementada):** telemetria *en vivo de una simulacion*, emitida por Jetson a traves del SSH autenticado, validada cuadro a cuadro en Mac con limites de tamano, version, secuencia, tiempos y deteccion de corte, y publicada en un WebSocket de monitor estrictamente de solo lectura. Antes de implementar, definir contrato, manejo de errores y pruebas de desconexion; no incluir rutas a PWM/I2C ni comandos de accion fisica.
+
+Mantener fuente V+ de servos apagada, OE del PCA9685 alto a 3.3 V, `main` sin cambios; seguir trabajando en `feat/jetson-nano-physical-ai`.
