@@ -34,14 +34,16 @@
 ```text
                           LOGICA 3.3 V, AISLADA DE V+ SERVO
 
-J6 3.3 V ---- R_OE_PULLUP (valor a validar) ----+----> OE del PCA9685
-                                                |
-                                              Colector
-                                             [ 2N2222 ]
-                                                |
-                                               Emisor ---- GND comun logico
-                                                |
-Jetson GPIO elegido luego -- R_BASE --> Base ---+-- R_BASE_PULLDOWN --> GND
+J6 3.3 V --- R_OE_PULLUP ---+---------------------> OE del PCA9685
+                             |
+                             +--- C (colector) Q1 2N2222 NPN
+                                      E (emisor) -----> GND comun logico
+
+GPIO habilitado SOLO por interlock/watchdog -- R_BASE --> B (base) Q1
+                                                       |
+                                                 R_BASE_PULLDOWN
+                                                       |
+                                                       +-----> GND comun logico
 
 Fuera de este dibujo: interlock / watchdog fisico independiente que haga imposible
 mantener permiso de OE si se pierde el heartbeat o el controlador se bloquea.
@@ -50,7 +52,7 @@ Potencia: ENCHUFE AC -- STOP fisico -- fuente 5 V / 10 A -- V+ del PCA9685
 Control: Jetson, con eliminador independiente; NO conectar salida 5 V a 3.3 V.
 ```
 
-**Atencion:** el dibujo es conceptual, no un plano listo para construir. El terminal de la base del transistor aparece en texto para explicar conexiones, no representa una red dimensionada. La señal de permiso del GPIO solo podra actuar a traves de la compuerta/interlock de habilitacion prevista. El 2N2222 actua como **sumidero de corriente de OE**, no suministra la potencia de ningun servo.
+**Atencion:** el dibujo es conceptual, no un plano listo para construir. Los terminales C, B y E son conexiones FUNCIONALES del transistor; su orden fisico depende de la version concreta del 2N2222 y debe verificarse antes de cablear. Esta representacion no incluye aun la logica fisica del watchdog/interlock ni sus componentes dimensionados. La señal de permiso del GPIO solo podra actuar a traves de la compuerta/interlock de habilitacion prevista. El 2N2222 actua como **sumidero de corriente de OE**, no suministra la potencia de ningun servo.
 
 ### Componentes previstos y razon
 
