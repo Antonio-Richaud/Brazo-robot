@@ -441,3 +441,20 @@ El usuario verificó sobre la Jetson Nano 2GB: rama `feat/jetson-nano-physical-a
 **Después y solo cuando 9.40 sea confirmado:** iniciar una segunda instancia de Vite, en `127.0.0.1:5174`, configurando `VITE_ROBOT_WS_URL=ws://127.0.0.1:8767` para comprobar el gemelo 3D y los botones/sliders bloqueados. La instancia normal en 5173 usa el backend local en 8765.
 
 **Aclaración fundamental:** esta fase **reproduce en bucle** 13 cuadros de simulación generados en Jetson y transmitidos una sola vez por SSH; no es una transmisión continua del estado real de la Jetson ni controla servos. `OE` alto (3.3 V), V+ apagada y `main` sin alterar.
+
+## 20. Paso 9.40 confirmado: monitor de reproducción Jetson en Mac (30-10-2026)
+
+El usuario ejecutó desde su Mac la tubería SSH autenticada hacia `antonio@jetson-nano.local`, que emite una demostración matemática de 13 tramas JSONL, y las entregó por stdin a `control-center/backend/jetson_demo_monitor.py --stdin-demo`. Se sincronizó la rama de trabajo hasta `7a9ef66` sin conflictos.
+
+**Salida real confirmada:**
+
+```text
+JETSON_REPLAY_MONITOR_READY ws://127.0.0.1:8767
+Modo: replay Jetson matematico / solo lectura / sin motores. Detener con Ctrl+C.
+```
+
+Esto confirma que el monitor pasó la validación de los datos de demostración y abrió su WebSocket local de reproducción; todavía **no confirma** que el dashboard reciba sus actualizaciones, que el modelo 3D se anime, ni que los botones y deslizadores estén visualmente deshabilitados.
+
+**Paso 9.41 pendiente:** sin cerrar el monitor ni los servicios originales, abrir otra terminal de Mac y ejecutar `VITE_ROBOT_WS_URL=ws://127.0.0.1:8767 npm run dev -- --host 127.0.0.1 --port 5174 --strictPort` dentro de `control-center/frontend`. Visitar `http://127.0.0.1:5174/` y confirmar `CONNECTED`, `runtime_mode=jetson_replay`, `mode=monitor`, cambio visual repetido de Base entre 90° y 125°, y controles Home/Saludo/Rutina/Cancelar/sliders deshabilitados. La UI original en 5173 sigue apuntando al backend local en 8765.
+
+La captura es solo **replay de una simulación generada en Jetson** y no streaming de sensores, medida física ni control de servos. OE sigue alto (3.3 V), alimentación externa de motores desconectada/apagada y `main` intacta.
