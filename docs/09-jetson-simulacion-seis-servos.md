@@ -412,3 +412,11 @@ El usuario compartio captura de Chrome del segundo dashboard 5174 despues de par
 **Siguiente verificacion:** ejecutar inspeccion DOM **solo lectura** con monitor aun detenido, contar cuatro botones y seis sliders y comprobar que todos cumplen `disabled=true`. Después, en otro paso, reiniciar la tuberia SSH→monitor y comprobar la recuperacion del estado `CONNECTED`, sin comandos ni actuacion fisica.
 
 Esta prueba no afecta servos ni Jetson I2C. Mantener fuente de motores apagada y OE alto a 3.3 V; no modificar `main`.
+
+## 25. Paso 9.50b: resultado de controles oculto por filtro (30-10-2026)
+
+Captura posterior a ejecutar el script de comprobacion de controles sin conexion: el script aparece en la consola, seguido de `undefined`, mientras la pestaña esta en `Personalizar niveles`, registra `8 ocultos` y solo muestra errores `ERR_CONNECTION_REFUSED` por el monitor 8767 apagado. La salida de los `console.log` no se ve; `undefined` no es un fallo del script, simplemente no retorna valor.
+
+**Estado de validacion:** reconexion ante caida del puerto confirmada, bloqueo de los 10 controles mientras offline **todavia sin evidencia**. Proximo paso: devolver un resultado como valor de expresion en DevTools o habilitar logs, confirmar `reconnecting`, cuatro botones deshabilitados y seis deslizadores deshabilitados antes de volver a levantar el monitor.
+
+No energizar servos, no habilitar PWM y no alterar `main`.
