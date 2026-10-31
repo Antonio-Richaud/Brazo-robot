@@ -455,13 +455,14 @@ de un segundo; FAULT y reset explícito. El watchdog es cooperativo,
 NO es un corte de motor ni un mecanismo de seguridad física.
 
 Se incorporaron 17 tests nuevos en
-`jetson/tests/test_arm_simulation.py`. **Pendiente: ejecutar estas pruebas
-en la Jetson con Python 3.6 y confirmar la demo sin hardware**. Los nueve
-tests previos ya habían pasado y `disable-all` se verificó contra
-el PCA9685 real (16/16 FULL OFF). Se esperan 26 tests totales.
+`jetson/tests/test_arm_simulation.py`. **Verificado en la Jetson Nano 2GB:**
+se ejecutó `python3 -m unittest discover -s jetson/tests -v` con
+**26 tests aprobados en 0.013 s (`OK`)**, incluyendo los nueve anteriores.
+`disable-all` también se había verificado contra el PCA9685 real (16/16 FULL OFF).
+**Pendiente:** ejecutar la demo matemática `python3 jetson/arm_simulation.py --demo`.
 
 Consultar [09-jetson-simulacion-seis-servos.md](09-jetson-simulacion-seis-servos.md).
 
 **Continuidad:** mantener OE alto (3.3 V), motores sin alimentación y
-main intacta; ejecutar `python3 -m unittest discover -s jetson/tests -v`
-antes de cualquier integración adicional.
+main intacta; los 26 tests ya pasaron en la Jetson. Ejecutar la demo matemática
+sin hardware y verificar los resultados antes de cualquier integración adicional.
