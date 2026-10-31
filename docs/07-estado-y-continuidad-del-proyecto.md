@@ -610,3 +610,20 @@ La consola conserva una unica advertencia visible de dependencia: `THREE.Clock` 
 **Siguiente etapa propuesta (todavia NO implementada):** telemetria *en vivo de una simulacion*, emitida por Jetson a traves del SSH autenticado, validada cuadro a cuadro en Mac con limites de tamano, version, secuencia, tiempos y deteccion de corte, y publicada en un WebSocket de monitor estrictamente de solo lectura. Antes de implementar, definir contrato, manejo de errores y pruebas de desconexion; no incluir rutas a PWM/I2C ni comandos de accion fisica.
 
 Mantener fuente V+ de servos apagada, OE del PCA9685 alto a 3.3 V, `main` sin cambios; seguir trabajando en `feat/jetson-nano-physical-ai`.
+
+
+## 35. Fase 10: potencia, STOP y plan de primer servo acoplado (31-10-2026)
+
+Tras fusionar la rama de simulacion/Jetson a `main` mediante PR #5 (merge `c8d76688bbbb6fd272e3154707ed6948434e5e38`), el desarrollo continuo en `feat/jetson-servo-power-safety`. El usuario confirmo que el montaje **ya tiene conectados** los seis servos MG995/SG90 al PCA9685 y que la fuente nominal 5 V / 10 A alimenta la entrada V+ del modulo.
+
+**Evidencia fisica y electrica reportada/verificada:** Jetson a PCA9685 `/dev/i2c-1` 0x40 y 16/16 FULL OFF confirmados por lectura SSH despues de energizar la fuente; el usuario reporto ~5 V V+ y ~3.3 V OE. El STOP fisico corta **la entrada AC** de la fuente de servos sin cortar la alimentacion independiente de Jetson; segun el usuario las clemas de potencia dejan de recibir corriente mientras permanece el 3.3 V logico. No hay certificacion del E-stop ni medicion temporal de descarga de condensadores.
+
+**Biblioteca disponible:** importacion `Jetson.GPIO` version 2.0.17 verificada en Jetson real, sin configurar ninguna salida. En imagen cercana se identifico un modulo PCA9685 de 16 canales tipo Adafruit. Sigue unido OE a 3.3 V fija desde J6 pin fisico 17; no debe accionarse un GPIO en paralelo con ese riel, ni desconectar OE a ciegas porque algunos breakouts lo llevan a LOW por defecto.
+
+**Riesgo de arranque:** los servos estan mecanicamente acoplados, no calibrados con lectura real de angulos; el firmware ESP32 antiguo hace `writeAllServosCurrent()` al iniciar y no se usara para mover el montaje Jetson. `jetson/pca9685_safe.py` solo habilita inspeccion y FULL OFF, **nunca PWM**, y la simulacion 9.xx sigue sin acceso a hardware.
+
+**Plan listo para siguiente sesion:** [11 — habilitacion fisica OE con 2N2222, watchdog, unica garra y pruebas por etapas](11-plan-habilitacion-fisica-2n2222.md). Se propone resistencia pull-up independiente de OE que mantenga HIGH por defecto, transistor 2N2222 de colector abierto con proteccion de base, interlock/watchdog independiente de Linux, y maquina de estados con permiso unico de canal 5, sin Home de arranque. Primero materiales y esquemas, luego pruebas simuladas, luego medicion de OE con STOP activado y finalmente un solo servo acoplado con limite fisico calibrado. **No se implemento aun el control fisico.**
+
+**Cierre de sesion:** usuario solicito apagar Jetson y continuar mañana. Instruccion segura: activar STOP AC antes de apagar Jetson, ejecutar `ssh -t -o ConnectTimeout=10 antonio@jetson-nano.local 'sudo shutdown -h now'` y esperar apagado. No hay confirmacion de ejecucion de este comando en la conversacion.
+
+**Importante:** referencias anteriores a `main` intacta y a fuente desconectada corresponden a fechas anteriores. Esta fase se documenta para integrarse en `main` por PR separado; lo que aparece aqui no certifica seguridad mecanica o electrica.
