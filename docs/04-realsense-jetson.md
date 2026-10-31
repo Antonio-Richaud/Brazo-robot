@@ -1,5 +1,17 @@
 # Intel RealSense D435i + Jetson Nano 2GB
 
+> **Estado a 26-10-2026:** este archivo describe la arquitectura objetivo,
+> **no** un despliegue que ya funcione en la Jetson. La Jetson verificada trae
+> Python 3.6.9, pero el código actual de percepción utiliza sintaxis y APIs
+> de Python posterior (por ejemplo, `from __future__ import annotations`,
+> anotaciones con `list[...]`, `asyncio.to_thread` y `websockets==16.0`).
+> **No ejecutar el comando del nodo que aparece abajo en ese Python 3.6 sin
+> adaptar primero el código y sus dependencias.** La D435i y pyrealsense2
+> todavía no se han probado en la Jetson. Consultar
+> [la bitácora de instalación](06-bitacora-instalacion-jetson-nano.md) y
+> [el documento de continuidad](07-estado-y-continuidad-del-proyecto.md).
+
+
 ## Decision de arquitectura
 
 Se conserva el Control Center web y se separa la percepcion:

@@ -66,8 +66,10 @@ function App() {
   const logs = useMemo(() => [...(robot.logs ?? [])].slice(-80).reverse(), [robot.logs])
   const socketConnected = socketState === 'connected'
   const manual = robot.mode === 'manual'
+  const jetsonReplay = robot.runtime_mode === 'jetson_replay' || robot.mode === 'monitor'
   const perception = robot.perception ?? {}
-  const controlsDisabled = !socketConnected || !manual
+  const controlsDisabled = !socketConnected || !manual || jetsonReplay
+  const sendSafe = (payload) => jetsonReplay ? false : send(payload)
   const lastMessageTime = lastMessageAt
     ? new Date(lastMessageAt).toLocaleTimeString('es-MX', { hour12: false })
     : '—'
@@ -109,17 +111,19 @@ function App() {
           <section className="panel-section">
             <div className="section-title"><span>02</span><h2>Acciones</h2></div>
             <div className="action-grid">
-              <ActionButton tone="cyan" disabled={!socketConnected} onClick={() => send({ action: 'home' })}>Home</ActionButton>
-              <ActionButton tone="green" disabled={!socketConnected || !manual} onClick={() => send({ action: 'saludo' })}>Saludo</ActionButton>
-              <ActionButton tone="violet" disabled={!socketConnected || !manual} onClick={() => send({ action: 'rutina' })}>Rutina</ActionButton>
+              <ActionButton tone="cyan" disabled={!socketConnected || jetsonReplay} onClick={() => sendSafe({ action: 'home' })}>Home</ActionButton>
+              <ActionButton tone="green" disabled={controlsDisabled} onClick={() => sendSafe({ action: 'saludo' })}>Saludo</ActionButton>
+              <ActionButton tone="violet" disabled={controlsDisabled} onClick={() => sendSafe({ action: 'rutina' })}>Rutina</ActionButton>
               <ActionButton
                 tone="amber"
-                disabled={!socketConnected}
-                onClick={() => send({ action: 'stop' })}
+                disabled={!socketConnected || jetsonReplay}
+                onClick={() => sendSafe({ action: 'stop' })}
                 title="Cancela la secuencia y ordena volver a Home; no es un paro eléctrico."
               >Cancelar / Home</ActionButton>
             </div>
-            <p className="safety-note"><span>!</span> “Cancelar” todavía mueve el brazo hacia Home. No sustituye un corte físico de potencia.</p>
+            {jetsonReplay
+              ? <p className="safety-note"><span>!</span> REPRODUCCIÓN JETSON SIMULADA · Solo lectura. Los controles están deshabilitados; no hay movimiento físico ni transmisión de órdenes.</p>
+              : <p className="safety-note"><span>!</span> “Cancelar” todavía mueve el brazo hacia Home. No sustituye un corte físico de potencia.</p>}
           </section>
 
           <section className="panel-section perception-card">
@@ -155,7 +159,7 @@ function App() {
           <section className="scene-card">
             <div className="scene-overlay scene-overlay--left">
               <span className="eyebrow">DIGITAL TWIN</span>
-              <strong>Modelo cinemático · 6 GDL</strong>
+              <strong>{jetsonReplay ? 'Reproducción Jetson · simulación · 6 GDL' : 'Modelo cinemático · 6 GDL'}</strong>
             </div>
             <div className="scene-overlay scene-overlay--right">
               <span className={`mode-pill mode-pill--${robot.mode}`}>{robot.mode}</span>
@@ -187,7 +191,7 @@ function App() {
           <div className="servo-list">
             {SERVO_ORDER.map((name) => {
               const servo = robot.servos?.[name]
-              return servo ? <ServoControl key={name} name={name} servo={servo} disabled={controlsDisabled} active={activeName === name} send={send} /> : null
+              return servo ? <ServoControl key={name} name={name} servo={servo} disabled={controlsDisabled} active={activeName === name} send={sendSafe} /> : null
             })}
           </div>
           {robot.health?.last_error && <div className="error-card"><strong>Error activo</strong><span>{robot.health.last_error}</span></div>}

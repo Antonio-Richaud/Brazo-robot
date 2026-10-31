@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Robot IA">
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="#070b13" stroke="#167b9b" stroke-width="2"/>
+  <path d="M13 50h38" fill="none" stroke="#8fa1b8" stroke-width="3" stroke-linecap="round"/>
+  <path d="M23 44l10-18 11-9" fill="none" stroke="#42d7e8" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="23" cy="44" r="6" fill="#f6b94a" stroke="#070b13" stroke-width="2"/>
+  <circle cx="33" cy="26" r="6" fill="#f6b94a" stroke="#070b13" stroke-width="2"/>
+  <circle cx="44" cy="17" r="5" fill="#f6b94a" stroke="#070b13" stroke-width="2"/>
+  <path d="M46 19l5 8-5 5" fill="none" stroke="#42d7e8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
