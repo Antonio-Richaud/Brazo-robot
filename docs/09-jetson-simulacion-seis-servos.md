@@ -287,3 +287,18 @@ ssh -T -o ConnectTimeout=10 antonio@jetson-nano.local \
 Solo después del arranque confirmado se probará el frontend en puerto 5174, apuntando explícitamente a WebSocket 8767. Los datos se generaron por simulación en Jetson, no proceden de sensores ni actuadores; el WebSocket de reproducción tiene `command_handler=None` y el frontend deshabilita controles al detectar `jetson_replay` / `monitor`.
 
 Mantener OE a 3.3 V, fuente externa de servos apagada, sistema JetPack sin actualizaciones arriesgadas y rama `main` intacta.
+
+## 14. Paso 9.40 verificado y prueba visual 9.41 pendiente
+
+**Confirmado por salida de terminal del usuario (30-10-2026):** la Mac inició una nueva sesión SSH autenticada, leyó las 13 tramas del emisor Python 3.6 de la Jetson y ejecutó el monitor separado `jetson_demo_monitor.py --stdin-demo`. El proceso informó:
+
+```text
+JETSON_REPLAY_MONITOR_READY ws://127.0.0.1:8767
+Modo: replay Jetson matematico / solo lectura / sin motores. Detener con Ctrl+C.
+```
+
+El puerto 8767 pertenece exclusivamente al monitor de reproducción Mac en loopback, con `command_handler=None` y `mode=monitor`; se mantiene separado del backend local 8765. La advertencia SSH sobre KEX no poscuántico continúa siendo una limitación conocida del servidor antiguo, no un fallo de transporte.
+
+**Aún no comprobado:** conexión desde React, animación 3D de la Base, bloqueo visual de los controles y UX del modo replay. Se propone iniciar una **segunda instancia de Vite en 5174**, con `VITE_ROBOT_WS_URL=ws://127.0.0.1:8767` únicamente en el comando de arranque (sin editar `.env` y sin alterar la instancia 5173). Verificar en navegador que `Runtime=jetson_replay`, `Modo=monitor`, `CONNECTED`, trayectoria visual 90→125→90 y controles deshabilitados.
+
+No interpretar este replay de una demo finita como telemetría continua ni medición física. Mantener alimentación de servos apagada, OE alto a 3.3 V y rama `main` sin cambios.
