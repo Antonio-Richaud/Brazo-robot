@@ -542,3 +542,15 @@ El usuario confirmó mediante salida real de la Mac que el cambio de `control-ce
 **Alcance:** queda confirmado que el nuevo ciclo de conexión WebSocket no rompe el lint ni la compilación. **No está verificado aún** que desaparezca en Chrome la advertencia `WebSocket is closed before the connection is established`, que se mantenga `CONNECTED` tras recarga, o que continúe la animación; se requiere una prueba de ejecución en el dashboard `http://127.0.0.1:5174/` con DevTools (todos los niveles, limpiar y recargar). El aviso `THREE.Clock` es un asunto separado de dependencia upstream y puede continuar sin impedir la funcionalidad.
 
 **Siguiente comprobación 9.49:** observar consola del segundo dashboard con el monitor WebSocket `8767` activo; confirmar ausencia de aviso de cierre temprano, enlace `CONNECTED`, escena animada y controles bloqueados. Mantener `main` intacta, OE alto a 3.3 V y potencia externa de servos apagada.
+
+## 29. Paso 9.49: enlace WebSocket sin cierre prematuro en Chrome (30-10-2026)
+
+**Evidencia visual aportada por el usuario:** captura nueva de Chrome DevTools del dashboard de reproducción en `127.0.0.1:5174` después de integrar el cambio de `useRobotSocket.js` y recargar. La interfaz muestra `ENLACE LOCAL: CONNECTED`, etiqueta `MONITOR`, `runtime_mode=jetson_replay` y el gemelo 3D renderizado. La consola muestra únicamente **una advertencia visible**: `THREE.THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.` enlazada al montaje `<Canvas>` de `RobotScene.jsx`.
+
+**Resultado del paso 9.49:** ya no aparece la advertencia `WebSocket is closed before the connection is established` que motivó el cambio de ciclo de vida en React StrictMode. Tampoco se ven el 404 de favicon ni los avisos repetitivos `PCFSoftShadowMap`. El resultado de conexión y renderizado está comprobado por captura; una imagen estática no mide por sí sola la continuidad del movimiento, que ya había sido validada anteriormente en el paso 9.41.
+
+**Advertencia residual:** `THREE.Clock` proviene de la compatibilidad de React Three Fiber con Three.js reciente; no hay llamada directa a `THREE.Clock` en la aplicación. No mutearla, degradar Three.js ni forzar versiones mayores sin un plan y pruebas de regresión. No se trata de una falla de hardware o del enlace Jetson.
+
+**Próximo paso 9.50 recomendado:** comprobar recuperación ante pérdida de enlace del monitor de reproducción: detener con `Ctrl+C` solo el proceso del monitor `:8767`, observar que la UI pasa de `CONNECTED` a `reconnecting` y mantiene sus controles deshabilitados. Verificar la recuperación tras reactivar el monitor en un paso posterior, sin enviar órdenes ni habilitar hardware.
+
+Conservar OE alto a 3.3 V, servos sin alimentación externa, monitor matemático solo lectura y rama `main` intacta.
