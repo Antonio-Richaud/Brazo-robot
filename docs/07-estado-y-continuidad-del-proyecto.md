@@ -574,3 +574,13 @@ El usuario compartio captura de DevTools con el monitor 8767 detenido y multiple
 **Siguiente comprobacion:** con 8767 apagado, ejecutar una expresion DOM de solo lectura que **devuelva** un objeto/JSON o un marcador literal (en lugar de solo `console.log`), para que su resultado sea visible incluso si la consola filtra mensajes de nivel Log; alternativamente habilitar el nivel Log en DevTools. No enviar comandos ni reactivar aun el monitor. La recuperacion automatica se probara despues de confirmar el bloqueo.
 
 Mantener alimentacion V+ de servos apagada, OE alto a 3.3 V y `main` intacta.
+
+## 32. Paso 9.50b: bloqueo de controles en desconexion confirmado (30-10-2026)
+
+**Comprobacion real en Chrome DevTools (captura del usuario):** con el monitor WebSocket del puerto 8767 detenido deliberadamente, el script de inspeccion DOM devolvio **`Estado: reconnecting | Botones: 4/4 | Deslizadores: 6/6 | OFFLINE_CONTROLES_BLOQUEADOS_OK`**. En otras palabras, el cliente React detecto el corte y los cuatro botones Home, Saludo, Rutina, Cancelar/Home y los seis sliders siguieron con `disabled=true`. Los errores `net::ERR_CONNECTION_REFUSED` en la consola se esperan porque la conexion al monitor fue interrumpida a proposito.
+
+**Resultado:** prueba de bloqueo UI en modo offline **aprobada (10/10 controles)**. El bloqueo del frontend no constituye un paro electrico independiente; el monitor sigue siendo replay de simulacion matematica, no telemetria de servos.
+
+**Siguiente paso 9.51, pendiente:** mantener abierta la pagina 5174 y reiniciar solo la tuberia SSH→`jetson_demo_monitor.py --stdin-demo` en Mac, sin recargar el navegador. Verificar que la UI vuelva por si misma a `CONNECTED`, que el movimiento 90→125→90 se reanude y que los 10 controles permanezcan bloqueados en modo `monitor`. No reactivar hardware fisico ni el backend de control real.
+
+Mantener `OE` del PCA9685 alto a 3.3 V, servos sin potencia externa y rama `main` intacta.
