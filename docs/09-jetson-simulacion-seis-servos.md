@@ -371,3 +371,16 @@ El usuario informó **«Ya está limpio»** y compartió captura del segundo das
 **Precisión de la prueba:** el selector de Chrome está en **`Solo Errores`**, no en todos los niveles. El contador del navegador muestra **2 advertencias** y DevTools indica **5 mensajes ocultos**. Por ello, la desaparición de las advertencias recurrentes `PCFSoftShadowMap` **aún debe comprobarse** en consola sin filtro; no marcar el diagnóstico de warnings como concluido.
 
 **Paso siguiente:** seleccionar `Niveles predeterminados` / todos los niveles, limpiar consola, recargar y observar las advertencias nuevas. Confirmar movimiento del gemelo y modo monitor sin alterar datos de Jetson ni servos. Mantener fuente física apagada y OE alto.
+
+## 21. Paso 9.47: avisos residuales de WebSocket y Clock (30-10-2026)
+
+Tras habilitar los niveles de consola, la captura del usuario en 5174 confirma que ya no se muestran ni el error de favicon ni advertencias por `PCFSoftShadowMap`; la interfaz continúa `CONNECTED` y en modo `MONITOR` con el gemelo 3D. Quedan dos advertencias:
+
+- Un WebSocket a `ws://127.0.0.1:8767/` se cierra antes de completar el handshake. `main.jsx` usa React Strict Mode; el anterior efecto de `useRobotSocket.js` creaba el WebSocket sin demora y lo cerraba siempre en cleanup. En desarrollo Strict Mode ejecuta un ciclo extra de efectos, que puede generar ese warning.
+- `THREE.Clock` ha quedado obsoleto desde Three.js r183. La advertencia aparece al crear `<Canvas>` y está relacionada con la implementación interna de React Three Fiber 9.x; no es una llamada propia a `new THREE.Clock` en `RobotScene.jsx`.
+
+**Cambio publicado en la rama sin pruebas reales todavía:** `src/useRobotSocket.js` pospone el primer handshake por un tick, cancela temporizadores de reconexión al desmontar, gestiona estado de efecto individual y no cierra sockets en `CONNECTING` (espera hasta `onopen` para cerrar si la instancia se descartó). No se cambió `main.jsx`, la geometría 3D, bibliotecas ni el modo monitor de solo lectura.
+
+**Próxima prueba:** `git pull --ff-only`, `npm run lint`, `npm run build` en Mac y Chrome DevTools (limpiar y recargar) para confirmar la corrección de WebSocket; el aviso `THREE.Clock` puede persistir hasta que `@react-three/fiber` migre a `THREE.Timer`. No degradar versiones ni mutear warnings sin necesidad. Esta nota no afirma que las advertencias ya estén eliminadas.
+
+Mantener la separación de control físico y monitor, servos apagados, OE alto a 3.3 V, `main` sin cambios.
