@@ -281,7 +281,7 @@ PR Raspberry Pi 4: https://github.com/Antonio-Richaud/Brazo-robot/pull/4
 - [x] Verificar visualmente el estado conectado del dashboard React: captura del usuario confirma `CONNECTED`, `simulation`, ESP32 sin enlace, percepción off, seis tarjetas de servos y modelo 3D renderizado (paso 9.33, comprobación parcial).
 - [x] Verificar movimiento simulado de Base de 90° a 105° y respuesta del gemelo 3D desde el navegador (paso 9.33). **El usuario confirmó que funciona**; sin medir movimiento físico.
 - [x] Probar visualmente la coreografía `Saludo` con `runtime_mode=simulation` en la Mac: el usuario comunicó «Sí parece que funciona bien» (paso 9.34).
-- [ ] Confirmar vía snapshot WebSocket **de solo lectura** después de Saludo el retorno exacto a Home (`current` y `target`) de los seis servos y `mode=manual`; la observación visual no sustituye esta comprobación.
+- [x] Confirmar vía snapshot WebSocket **de solo lectura** después de Saludo el retorno exacto a Home (`current` y `target`) de los seis servos y `mode=manual` (paso 9.35; **6/6 OK**, `runtime_mode=simulation`).
 - [x] Estudiar y probar pines J6 y comunicación I2C PCA9685 en Jetson Nano 2GB, sin alimentar motores.
 
 ### Fase C — Integración control físico
@@ -383,3 +383,13 @@ cd ~/Documents/GitHub/Brazo-robot/control-center/frontend
 npm run dev -- --host 127.0.0.1
 ```
 Abrir la URL local que imprima Vite (habitualmente `http://127.0.0.1:5173/`), comprobar visualización 3D, estado de conexión y consola. Mantener el backend local activo, `OE` alto (3.3 V), fuente externa de servos apagada y la Jetson sin nuevos servicios de red.
+
+## 15. Cierre de línea base Mac y comienzo de telemetría Jetson (30-10-2026)
+
+**Paso 9.34:** usuario confirmó visualmente que la coreografía virtual `Saludo` parece funcionar bien. La comprobación exacta quedó pendiente hasta el paso siguiente.
+
+**Paso 9.35, comprobado con la salida real del cliente WebSocket de solo lectura:** tras la coreografía, el backend regresó a `runtime_mode: simulation`, `mode: manual` y **todos los seis servos tienen `current == target == home`**: base 90, hombro 50, codo 165, muneca1 10, muneca2 170, garra 40 grados. Mensaje final: `RESULTADO: HOME VERIFICADO`. El recorrido UI→WebSocket→backend simulado→UI 3D y el retorno a Home quedan confirmados en la Mac. Ninguna posición es una lectura física.
+
+**Siguiente paso 9.36:** confirmar que la Mac puede ejecutar por SSH una lectura JSON del simulador Python 3.6 existente en la Jetson, sin modificar archivos, instalar paquetes, abrir un puerto nuevo, acceder a I²C ni encender servomotores. Se pretende un transporte de telemetría **de lectura desde Mac mediante SSH existente**, no un servidor sin autenticación en Jetson. En una fase posterior diseñar un modo separado de telemetría remota que rechace comandos de movimiento; no reutilizar `simulation` como si fueran datos de Jetson ni aceptar comandos remotos hacia PWM.
+
+Permanecen pendientes validación de conectividad SSH actual, implementación del puente, manejo de desconexiones, pruebas de aislamiento, watchdog independiente de hardware, corte físico de alimentación y calibración de servos. `OE` debe mantenerse alto a 3.3 V y V+ de los servos sin alimentación. Trabajar solo en `feat/jetson-nano-physical-ai`; `main` queda intacta.
