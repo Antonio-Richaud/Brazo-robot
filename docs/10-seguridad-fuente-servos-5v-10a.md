@@ -229,3 +229,39 @@ El usuario aclara: **«Cuando acciono el stop le deja de llegar corriente a las 
 - Mantener en `FULL OFF 16/16` y OE alto hasta completar diseño, pruebas simuladas del controlador y preflight fisico. **No emitir `home`, `s 6 ...`, `d 6 ...`, ni ejecutar la ruta ESP32 de forma fisica ahora.**
 
 **Decision actual:** no desmontar por defecto. Preparar primero software y protocolo especificos del servo de la garra acoplado; conservar todo en `feat/jetson-servo-power-safety`, sin cambiar `main`. No declarar que los limites logicos son una calibracion fisica.
+
+
+## 14. Paso 10.7: Jetson.GPIO disponible; OE permanece inhibido (31 de octubre de 2026)
+
+**Evidencia ejecutada por el usuario desde Mac (SSH autenticado a `antonio@jetson-nano.local`):**
+
+```text
+JETSON_GPIO_DISPONIBLE
+Version: 2.0.17
+```
+
+El script realizo **solo `import Jetson.GPIO as GPIO` y leyo `GPIO.VERSION`**. No llamo `setmode`, `setup`, `output`, `input`, `cleanup`, ni cambio la direccion, nivel o multiplexor de ningun pin. Confirmado: la libreria **Jetson.GPIO 2.0.17 esta disponible** bajo Python 3.6 del sistema JetPack 4.6.1. Esto NO implica que exista un GPIO de control de OE ya cableado.
+
+### Advertencia electrica imprescindible para la siguiente etapa
+
+- Actualmente el pin **OE del PCA9685 esta unido directamente al riel de 3.3 V del header J6, pin fisico 17**. El pin 17 es una **alimentacion fija de 3.3 V, NO un GPIO programable**.
+- Segun la ficha oficial NXP PCA9685, **OE es activo en BAJO**: con OE alto las salidas estan inhibidas segun la configuracion OUTNE del MODE2; con OE bajo siguen los registros PWM. La ultima medicion reportada en OE es 3.3 V y la lectura PCA9685 confirmo FULL OFF en los 16 canales.
+- **PROHIBIDO** conectar directamente un GPIO configurado como salida a OE mientras OE permanezca unido al pin 17 de 3.3 V: una salida BAJA entraria en conflicto con el riel de 3.3 V, con riesgo de dano electrico a la Jetson.
+- La disponibilidad de Jetson.GPIO no crea una proteccion ante bloqueo del proceso Linux, reboot, kernel panic, perdida de red o alimentacion independiente de los servos. No suponer que un `finally` de Python puede detener el motor tras un fallo del sistema.
+- En placas PCA9685 comerciales, el estado default de OE y las resistencias montadas pueden variar: identificar el modulo exacto y su red de pull-up/pull-down antes de definir resistencias, transistor o un pin J6 adicional.
+
+### Arquitectura propuesta (NO cableada ni implementada)
+
+1. Mantener `FULL OFF` en 16 canales y dejar OE alto durante todo el diseño y pruebas de software.
+2. Un circuito de **inhibicion por defecto** externo al programa mantiene OE ALTO cuando no hay autorizacion, durante arranque/reinicio o si se desconecta el control. La etapa que podria tirar OE a BAJO debera ser de tipo transistor adecuado (salida de colector abierto/open-drain o equivalente) y no una salida GPIO conectada en paralelo con la alimentacion 3.3 V.
+3. El eventual permiso de OE debe depender de un **interlock/watchdog independiente**, no solo de un valor GPIO mantenido; y no debe puentear el STOP fisico de potencia. Se diseñara y validara un estado a prueba de fallos antes de energizar el control de movimientos.
+4. El control de un unico canal requiere tambien validacion de rango de pulsos fisicamente calibrado, lectura de `FULL OFF` de todos los otros canales, arranque sin Home automatico, supervision de tiempo y deshabilitacion inmediata del canal ante error.
+5. Primero revisar esquema y luego ensayar **sin movimiento**, con medidor de OE y potencia de servos cortada. Cualquier ensayo real con la garra mecanicamente acoplada es una fase posterior, con trayecto, cargas y riesgos mecanicos conocidos.
+
+### Siguiente paso 10.8
+
+Antes de decidir el GPIO concreto, **identificar el modelo/revision del modulo PCA9685 y la red OE instalada** (fotografia frontal/reverso o referencia exacta; inspeccion fisica con potencia retirada), y definir la topologia de inhibicion y watchdog independiente. No manipular el pin 17 energizado. Las alternativas de interfaz y sus componentes exactos se definiran para ese modulo, no por suposicion.
+
+**Referencias tecnicas:**
+- NXP PCA9685, seccion 7.4 de ficha tecnica oficial: https://www.nxp.com/docs/en/data-sheet/PCA9685.pdf
+- NVIDIA Jetson.GPIO API y pin numeration BOARD: https://github.com/NVIDIA/jetson-gpio
