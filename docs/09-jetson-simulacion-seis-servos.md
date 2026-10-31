@@ -174,6 +174,19 @@ Se debe mantener **OE a 3.3 V, V+ de los servos desconectado y `main` intacta**.
 - Validación frontend: `npm run lint` OK, `npm run build` OK (Vite 8.3.5, 571 módulos, 903 ms), `git diff --check` OK.
 - Cambios confirmados y publicados en GitHub: commit **`999367e`** (`control-center/frontend/package-lock.json` únicamente), rama Jetson; `main` sin modificar. Cualquier commit de documentación posterior exige `git pull --ff-only` en Mac antes de continuar.
 
-**Paso 9.31 confirmado por el usuario:** después de levantar Vite en la Mac, `http://127.0.0.1:5173/` **abre correctamente y el dashboard se visualiza bien**. Esta validación es exclusivamente visual; **no se ha verificado todavía el handshake WebSocket, la recepción de telemetría ni el movimiento simulado de seis ejes desde la UI**. Próxima verificación: cliente Python 3.12 de WebSocket de **solo lectura**, conectado únicamente a `ws://127.0.0.1:8765`, comprobar `runtime_mode: simulation`, seis servos y `measured: false`, sin enviar comandos.
+**Paso 9.31 confirmado por el usuario:** después de levantar Vite en la Mac, `http://127.0.0.1:5173/` **abre correctamente y el dashboard se visualiza bien**. Esta validación es visual; la interfaz React aún no se ha probado con órdenes de movimiento ni se ha comprobado su estado de conexión desde el navegador.
+
+**Paso 9.32 confirmado en la Mac (30-10-2026):** el cliente WebSocket Python 3.12 (`websockets.connect("ws://127.0.0.1:8765")`) recibió exitosamente el snapshot JSON del backend, **sin enviar comandos**. Datos comunicados por el usuario: `protocol_version: 2`, `runtime_mode: simulation`, `mode: manual`, `connected: False`, seis articulaciones con `measured: False`:
+
+| Eje | current | target |
+|---|---:|---:|
+| base | 90 | 90 |
+| hombro | 50 | 50 |
+| codo | 165 | 165 |
+| muneca1 | 10 | 10 |
+| muneca2 | 170 | 170 |
+| garra | 40 | 40 |
+
+Salida final: `VERIFICACION EXITOSA: simulacion y seis ejes`. Esto demuestra **handshake WebSocket y lectura de datos reales del backend**, no demuestra aún que la UI mueva el gemelo digital ni que haya conexión entre Jetson y Mac. **Siguiente paso:** confirmar `connected` y `simulation` en la UI, ajustar únicamente el control virtual `Base` a 105° y observar actualización de `target`, `current` y rotación del modelo 3D, sin conexión física.
 
 Esta preparación del dashboard es **independiente** del simulador Python 3.6 de la Jetson; todavía **no existe puente Jetson → Mac**. Mantener **OE alto a 3.3 V, V+ de servos apagado y ninguna habilitación física**.
