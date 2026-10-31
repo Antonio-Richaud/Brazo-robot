@@ -1,7 +1,7 @@
 # Simulación segura de seis articulaciones en Jetson Nano 2GB
 
 **Fecha:** 30 de octubre de 2026  
-**Estado:** código y 17 pruebas unitarias añadidos a GitHub; **pendiente ejecutar en Jetson Nano real con Python 3.6**.  
+**Estado:** simulador aislado y **26/26 pruebas aprobadas en la Jetson Nano 2GB con Python 3.6.9**, 0.013 s, sin acceso físico a los servos. **Pendiente:** ejecutar la demostración CLI `--demo`.  
 **Rama:** `feat/jetson-nano-physical-ai`.
 
 ## Objetivo
@@ -93,10 +93,15 @@ git pull --ff-only origin feat/jetson-nano-physical-ai
 python3 -m unittest discover -s jetson/tests -v
 ~~~
 
-Se esperan **26 pruebas totales**: nueve antiguas del diagnóstico PCA9685
-y 17 nuevas de simulación. Es necesario confirmar el resultado en
-Python **3.6.9** antes de declararlas aprobadas. Ninguna prueba escribe
-registros del dispositivo físico.
+**Resultado comprobado en la Jetson Nano 2GB (30-10-2026):**
+
+```text
+Ran 26 tests in 0.013s
+
+OK
+```
+
+Las 26 pruebas incluyen nueve del diagnóstico PCA9685 simulado y 17 nuevas de simulación. Todas pasaron en **Python 3.6.9**. Ninguna prueba escribe registros del dispositivo físico.
 
 Demostración matemática opcional, también sin hardware:
 
@@ -124,15 +129,16 @@ determinista: no espera ni controla servos.
 
 ## 5. Riesgos y próximos pasos
 
-1. Ejecutar los 26 tests en Jetson y validar `--demo` (todavía pendientes).
-2. Diseñar una interfaz de comandos y eventos reutilizable entre el
+1. **[Completado]** Ejecutar 26/26 tests con Python 3.6 en la Jetson (0.013 s, `OK`).
+2. **[Pendiente]** Validar `python3 jetson/arm_simulation.py --demo` en la Jetson.
+3. Diseñar una interfaz de comandos y eventos reutilizable entre el
    backend moderno de Mac y el futuro servicio Jetson, sin conectar aún PWM.
-3. Validar límites de aceleración, secuencias, autenticación y reacción
+4. Validar límites de aceleración, secuencias, autenticación y reacción
    a pérdida de comunicación en modo simulación.
-4. Antes de siquiera alimentar un servo: revisar el cableado real,
+5. Antes de siquiera alimentar un servo: revisar el cableado real,
    polaridades, VCC/V+, tierra común, tensión medida y un **corte físico
    dedicado de potencia para los servos**.
-5. Planear un adaptador I²C real en un módulo distinto, desarmado por defecto,
+6. Planear un adaptador I²C real en un módulo distinto, desarmado por defecto,
    protegido por validaciones y sin arranque Home automático. No implementarlo
    ni probarlo con la fuente energizada hasta tener las garantías anteriores.
 
