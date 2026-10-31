@@ -277,7 +277,8 @@ PR Raspberry Pi 4: https://github.com/Antonio-Richaud/Brazo-robot/pull/4
 - [x] Ejecutar las pruebas del backend moderno en la Mac con Python 3.12.13: 7/7 `unittest` OK; servidor iniciado explícitamente en simulación, conexión TCP `127.0.0.1:8765` comprobada.
 - [x] Instalar dependencias frontend, corregir 11 alertas de auditoría, validar lint y build en Mac: producción 0, desarrollo 6 moderadas en árbol ESLint/minimatch; commit `999367e` publicado en rama Jetson.
 - [x] Abrir el dashboard 3D en `http://127.0.0.1:5173/` en Mac; el usuario confirmó que la interfaz se visualiza correctamente (paso 9.31).
-- [ ] Verificar intercambio WebSocket y estado real de seis servos en el navegador o cliente de solo lectura; aún no verificados.
+- [x] Verificar handshake WebSocket y snapshot JSON del backend Mac en cliente Python 3.12 de solo lectura (paso 9.32): protocolo 2, runtime simulación, 6/6 ejes, `measured: false`, ESP32 desconectado.
+- [ ] Verificar movimiento simulado y actualización del gemelo 3D desde controles del navegador. No probado todavía.
 - [x] Estudiar y probar pines J6 y comunicación I2C PCA9685 en Jetson Nano 2GB, sin alimentar motores.
 
 ### Fase C — Integración control físico
@@ -371,7 +372,9 @@ Se siguieron los pasos 9.18–9.30, validados con salidas reales en la MacBook A
 
 **Alcance de la comprobación:** el frontend ya se inició y el usuario confirma que la interfaz 3D se visualiza bien en `127.0.0.1:5173` (paso 9.31). Escuchar TCP y ver la interfaz **no equivale** a verificar el protocolo WebSocket o que los seis servos reciban estado del backend. El siguiente paso es recibir un snapshot WebSocket con un cliente local **de solo lectura**, verificar `runtime_mode=simulation`, nombres de los seis ejes y `measured=false`. Queda pendiente investigar `minimatch` y la versión de ESLint sin soporte sin usar actualizaciones forzadas.
 
-**Próximo paso de una sola ejecución en Mac:** después de sincronizar nuevos commits de documentación con `git pull --ff-only origin feat/jetson-nano-physical-ai`, iniciar en otra terminal:
+**Paso 9.32 registrado:** cliente WebSocket en Mac conectado a `ws://127.0.0.1:8765` y validó `protocol_version=2`, `runtime_mode=simulation`, `mode=manual`, `connected=false` para ESP32, seis servos con `measured=false`. Bases de simulación: base 90°, hombro 50°, codo 165°, muneca1 10°, muneca2 170°, garra 40°. La prueba fue únicamente de recepción de telemetría, sin envío de órdenes. **Próximo paso:** verificar el movimiento del eje Base hacia 105° en la UI, solo con `Runtime=simulation` y `ENLACE LOCAL=connected`; evaluar cambios `current/target` y escena 3D. El nodo Jetson permanece independiente, OE alto y potencia externa apagada.
+
+**Comandos históricos del arranque en Mac (ya ejecutados):**
 ```bash
 cd ~/Documents/GitHub/Brazo-robot/control-center/frontend
 npm run dev -- --host 127.0.0.1
