@@ -1,7 +1,7 @@
 # Simulación segura de seis articulaciones en Jetson Nano 2GB
 
 **Fecha:** 30 de octubre de 2026  
-**Estado:** simulador aislado y **26/26 pruebas aprobadas en la Jetson Nano 2GB con Python 3.6.9**, 0.013 s, sin acceso físico a los servos. **Pendiente:** ejecutar la demostración CLI `--demo`.  
+**Estado:** simulador aislado, **26/26 pruebas aprobadas** y demostración CLI `--demo` ejecutada con éxito en la Jetson Nano 2GB (Python 3.6.9), sin acceso al hardware de los servos.  
 **Rama:** `feat/jetson-nano-physical-ai`.
 
 ## Objetivo
@@ -109,7 +109,7 @@ Demostración matemática opcional, también sin hardware:
 python3 jetson/arm_simulation.py --demo
 ~~~
 
-En la demostración, la base pasa en datos de 90° a 125°, avanzando
+**Demostración verificada en la Jetson el 30-10-2026.** Se observó la trayectoria de la base de 90° a 125°, avanzando
 a velocidad simulada de 70°/s con pasos de 0.1 s:
 
 ~~~text
@@ -122,6 +122,8 @@ T=0.5s base=125.0 deg
 SIMULACION TERMINADA: sin motores, sin I2C y sin GPIO
 ~~~
 
+La salida real confirmó los cinco pasos indicados, el texto `SIMULACION TERMINADA: sin motores, sin I2C y sin GPIO`, `fault_reason: null`, `hardware_enabled: false`, `mode: simulation_only`, `measured: false` para las seis articulaciones, y `state: DISARMED` tanto al iniciar como al finalizar.
+
 También imprime estados JSON completos inicial y final con
 `hardware_enabled: false`, `measured: false` y el estado
 `DISARMED` al finalizar. Se ejecuta usando un reloj falso
@@ -130,7 +132,7 @@ determinista: no espera ni controla servos.
 ## 5. Riesgos y próximos pasos
 
 1. **[Completado]** Ejecutar 26/26 tests con Python 3.6 en la Jetson (0.013 s, `OK`).
-2. **[Pendiente]** Validar `python3 jetson/arm_simulation.py --demo` en la Jetson.
+2. **[Completado]** Validar `python3 jetson/arm_simulation.py --demo` en la Jetson (90°, 97°, 104°, 111°, 118°, 125° y `DISARMED` final).
 3. Diseñar una interfaz de comandos y eventos reutilizable entre el
    backend moderno de Mac y el futuro servicio Jetson, sin conectar aún PWM.
 4. Validar límites de aceleración, secuencias, autenticación y reacción
@@ -144,3 +146,16 @@ determinista: no espera ni controla servos.
 
 **En esta etapa no se debe bajar OE, encender V+ ni conectar motores
 para observar esta simulación.**
+
+## 6. Próximo paso: establecer la línea base del dashboard 3D en Mac
+
+El backend existente (`control-center/backend/main.py`) admite `--mode simulation`, `--perception off` y `--no-joystick`, mientras el frontend React/Three.js usa WebSocket (`useRobotSocket.js`) para consumir el estado del backend (`robot_state.py`, puerto 8765). Este backend requiere una versión moderna de Python y **no debe instalarse sobre el Python 3.6 de JetPack**.
+
+La demostración anterior es un proceso local y aislado en Jetson: todavía **no publica datos al WebSocket del dashboard**. Antes de conectar ambos componentes:
+
+1. Comprobar en la **Mac** que el repositorio existe localmente, y las versiones de Python/Node/npm disponibles.
+2. Ejecutar el dashboard existente en modo simulación en la Mac, sin hardware y sin joystick, para verificar el punto de partida.
+3. Definir un contrato de telemetría **unidireccional, solo lectura** desde la simulación de Jetson hacia el backend moderno. No aceptar comandos remotos de movimiento ni abrir puertos sin control de acceso.
+4. Integrar gradualmente y añadir pruebas de compatibilidad del estado (IDs, nombres, límites, `measured: false`), sin tocar la rutina física ni arrancar `Home`.
+
+Se debe mantener **OE a 3.3 V, V+ de los servos desconectado y `main` intacta**. La simulación no es un movimiento físico ni valida calibración mecánica.
