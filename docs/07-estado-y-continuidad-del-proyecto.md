@@ -278,7 +278,8 @@ PR Raspberry Pi 4: https://github.com/Antonio-Richaud/Brazo-robot/pull/4
 - [x] Instalar dependencias frontend, corregir 11 alertas de auditoría, validar lint y build en Mac: producción 0, desarrollo 6 moderadas en árbol ESLint/minimatch; commit `999367e` publicado en rama Jetson.
 - [x] Abrir el dashboard 3D en `http://127.0.0.1:5173/` en Mac; el usuario confirmó que la interfaz se visualiza correctamente (paso 9.31).
 - [x] Verificar handshake WebSocket y snapshot JSON del backend Mac en cliente Python 3.12 de solo lectura (paso 9.32): protocolo 2, runtime simulación, 6/6 ejes, `measured: false`, ESP32 desconectado.
-- [ ] Verificar movimiento simulado y actualización del gemelo 3D desde controles del navegador. No probado todavía.
+- [x] Verificar visualmente el estado conectado del dashboard React: captura del usuario confirma `CONNECTED`, `simulation`, ESP32 sin enlace, percepción off, seis tarjetas de servos y modelo 3D renderizado (paso 9.33, comprobación parcial).
+- [ ] Verificar movimiento simulado de Base a 105° y actualización del gemelo 3D desde controles del navegador. Captura actual: Base 90°, objetivo 90°; todavía no probado.
 - [x] Estudiar y probar pines J6 y comunicación I2C PCA9685 en Jetson Nano 2GB, sin alimentar motores.
 
 ### Fase C — Integración control físico
