@@ -398,3 +398,37 @@ Resultados de referencia: Python 3.6.9; pip en venv 21.3.1; OpenCV 4.1.1; Tensor
 - [04 — RealSense + Jetson (diseño, no despliegue verificado)](04-realsense-jetson.md)
 - [05 — Manual de uso y pruebas](05-manual-de-uso-y-pruebas.md)
 - [07 — Estado del proyecto, decisiones y siguientes pasos](07-estado-y-continuidad-del-proyecto.md)
+
+
+## 14. Actualización posterior — 30 de octubre de 2026: PCA9685 por I²C
+
+El diagnóstico y las pruebas de cableado del PCA9685 son posteriores a la
+instalación inicial descrita arriba. El registro completo, con comandos y
+respuestas observadas, está en
+[08-jetson-pca9685-i2c-pruebas.md](08-jetson-pca9685-i2c-pruebas.md).
+
+**Confirmado con salidas de la Jetson:**
+
+- Interfaces /dev/i2c-0 a /dev/i2c-6 y permisos del grupo i2c; el usuario
+  antonio pertenece a ese grupo.
+- Conexiones lógicas del PCA9685: J6 pin 1 -> VCC 3.3 V, pin 3 -> SDA,
+  pin 5 -> SCL, pin 6 -> GND, pin 17 -> OE a 3.3 V.
+- Dispositivo detectado en /dev/i2c-1, dirección 0x40, usando
+  i2cdetect -r -y 1 0x40 0x40 (la exploración Quick Write estándar omitía
+  direcciones por limitaciones del adaptador).
+- Registros iniciales MODE1=0x11, MODE2=0x04, PRE_SCALE=0x1E.
+- Ajuste a PRE_SCALE=0x79 (~50 Hz nominales); después MODE1=0x01,
+  oscilador activo.
+- ALL_LED_OFF_H=0x10 aplicado; lectura de FULL OFF en canales 0 y 15.
+- Programación del canal 0 con LED0_OFF_L=0x33 y LED0_OFF_H=0x11,
+  equivalente a ~1,498 microsegundos nominales, **manteniendo FULL OFF**.
+- La fuente de 5 V / 10 A de los servomotores **no se ha energizado**.
+  No se ha probado ningún movimiento.
+- En la rama Jetson se agregó jetson/pca9685_safe.py, un módulo compatible
+  con Python 3.6 para consulta y bloqueo por FULL OFF, y nueve pruebas con
+  transporte simulado; **pendiente ejecutar en la Jetson real**.
+
+**Estado para la siguiente sesión:** ejecutar en la Jetson
+python3 jetson/pca9685_safe.py status después de sincronizar la rama.
+Es solo lectura. No retirar OE de 3.3 V ni conectar la alimentación
+de los servos hasta diseñar y verificar el sistema de armado y corte físico.
