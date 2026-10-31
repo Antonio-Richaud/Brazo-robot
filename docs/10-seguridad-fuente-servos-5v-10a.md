@@ -149,12 +149,35 @@ En la prueba anterior la Jetson tambien confirmo por I2C `FULL OFF 16/16`. Por t
 
 ## 10. Paso 10.4: corte fisico reportado, prueba funcional pendiente (31 de octubre de 2026)
 
-El usuario confirmo que **ya tiene instalado un interruptor fisico o paro de emergencia para cortar la alimentacion de 5 V de los servomotores independientemente de la Jetson**. Declaracion textual: «Sí ya lo tengo». Se reconoce como **instalacion reportada**, NO como prueba de funcionamiento, capacidad nominal DC, recorrido efectivo de contactos, tipo de conexion o verificacion de seguridad.
+El usuario confirmo que **ya tiene instalado un interruptor fisico o paro de emergencia que corta la energia de la fuente de servos independientemente de la Jetson**. Declaracion textual: «Sí ya lo tengo». **Aclaracion posterior del mismo usuario (paso 10.5): el corte esta en el lado AC, entre el enchufe y la fuente conmutada, NO en la salida DC de 5 V.** La confirmacion es del usuario; no constituye prueba documental de la capacidad nominal del contacto, protecciones o verificacion de seguridad.
 
 Condiciones antes de probar: mantener el PCA9685 con FULL OFF 16/16 segun la ultima lectura y OE conectado a nivel alto 3.3 V; no mover servos ni enviar PWM. Apoyar el brazo y asegurar la carga porque quitar potencia puede liberar los ejes. Mantener manos lejos de articulaciones y de bornes de corriente alterna.
 
 **Siguiente verificacion funcional de bajo voltaje (sin cambiar cables):** observar con multimetro el voltaje en el **lado de la alimentacion DC que queda despues del interruptor/paro hacia los servos**. Si el corte esta antes de la entrada V+ del PCA9685, el punto de medida es V+ respecto al GND de potencia de la placa. Accionar el paro y comprobar que en ese lado de carga la tension desciende a aproximadamente 0 V despues de descargar condensadores, mientras la Jetson permanece operativa. Si el corte esta despues de V+ del PCA9685, no usar la medicion V+ como prueba; identificar el lado de carga efectivo sin tocar cableado energizado. No confundir el contacto NA/NC, ni dar por probado el paro solo por accionarlo.
 
-**Criterio para avanzar:** comprobar fisicamente que el paro elimina la potencia de servos y no interrumpe la alimentacion/control de la Jetson; verificacion del rearme solo en fase posterior con OE alto y PWM deshabilitado. Registrar medida y tiempo aproximado de caida. Si hay giro o caida espontanea, calor, chispas, olor o cualquier duda de cableado, no continuar y solicitar revision profesional. Se requiere ademas validar rating de switch/corte DC y protecciones antes de movimientos.
+**Criterio para avanzar:** comprobar fisicamente que el paro elimina la potencia de servos y no interrumpe la alimentacion/control de la Jetson; verificacion del rearme solo en fase posterior con OE alto y PWM deshabilitado. Registrar medida y tiempo aproximado de caida. Si hay giro o caida espontanea, calor, chispas, olor o cualquier duda de cableado, no continuar y solicitar revision profesional. Se requiere ademas validar capacidad y protecciones del interruptor/contacto para corriente alterna, fase correcta, puesta a tierra y encapsulado antes de movimientos. El cableado real fue aclarado en el paso 10.5.
 
 **Estado:** esperar resultado de la prueba de corte. No existe codigo nuevo ni movimientos permitidos. El documento conserva el historial de los apartados 1–9 sin reinterpretarlos como el cableado actual.
+
+
+## 11. Paso 10.5: topologia real del STOP aclarada — corta AC, no V+ (31 de octubre de 2026)
+
+**Aclaracion del usuario:** «SÍ funciona, el stop de emergancia interrumpe la corriente que va del enchufe a la fuente, y esta independiete al eliminador de la jetson».
+
+**Topologia del montaje reportada:**
+
+```text
+ENCHUFE CA --- [STOP fisico en entrada AC] --- [FUENTE CONMUTADA 5 V / 10 A] --- V+ y GND potencia del PCA9685 --- SERVOS
+
+ENCHUFE CA --- [ELIMINADOR INDEPENDIENTE JETSON] --- Jetson Nano 2 GB --- VCC logico 3.3 V, SDA/SCL/GND y OE alto del PCA9685
+```
+
+Es un **paro aguas arriba de la fuente en el lado de red CA**: al accionarlo, la fuente deja de recibir energia de entrada, mientras la Jetson sigue alimentada por su propio eliminador. Esto **CORRIGE** la suposicion de las notas previas de que el interruptor interrumpia directamente la linea V+ DC. La persistencia temporal de los 5 V en la salida depende de los condensadores de la fuente y de la carga conectada; **la interrupcion de entrada AC no demuestra una eliminacion instantanea de V+**.
+
+**Estado comunicado:** el usuario confirma que el STOP funciona, sin medicion temporal explicita de decaimiento de V+ ni certificado de contacto. Evitar afirmar que el paro tiene capacidad de seguridad normativamente validada.
+
+**Comprobacion pendiente sin modificar conexiones de potencia:** mantener PWM en FULL OFF 16/16 y OE alto; usar multimetro en modo voltaje continuo para observar la salida **V+ respecto a GND de potencia** del PCA9685 (solo bornes de baja tension, sin acercarse a L/N/PE de CA). Al activar STOP, la tension debe caer de ~5 V a ~0 V; registrar si tarda segundos en desaparecer. La Jetson debe permanecer encendida. No puentear el STOP ni recablearlo con alimentacion conectada.
+
+**Seguridad de la entrada AC:** el dispositivo y contactos del STOP tienen que estar dimensionados para la entrada de red, en caja protegida y con cables fijados; confirmar que interrumpe el conductor de fase (no solamente neutro) y **nunca** el conductor de proteccion PE. Una fuente con bornes CA expuestos requiere revision/cableado por profesional competente. No considerar un contacto improvisado equivalente a parada de emergencia certificada.
+
+**Siguiente paso:** observar la caida de V+ con STOP accionado y Jetson encendida, y mantener STOP activado al terminar. No habilitar PWM ni tratar de mover uno o varios servos en esta comprobacion.
