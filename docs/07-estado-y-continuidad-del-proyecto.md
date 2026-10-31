@@ -1,7 +1,7 @@
 # Estado del proyecto y documento de continuidad — Brazo Robot + Jetson Nano
 
 **Fecha de corte inicial:** 26 de octubre de 2026  
-**Última actualización:** 30 de octubre de 2026 (PCA9685/I²C)  
+**Última actualización:** 30 de octubre de 2026 (PCA9685/I²C y utilidad `status` verificada en Jetson)  
 **Repositorio:** https://github.com/Antonio-Richaud/Brazo-robot  
 **Rama de trabajo actual:** feat/jetson-nano-physical-ai  
 **Punto de partida del código:** main, commit 8251aa902c04192c4e1d8ed143515d59bfdd7f7a  
@@ -26,7 +26,7 @@ El objetivo es un **sandbox de IA/robótica física**: brazo de seis grados de l
 - Se agregó jetson/pca9685_safe.py (diagnóstico solo lectura y comando exclusivo FULL OFF, sin orden de armado/movimiento) y nueve pruebas con I²C simulado; **pendiente ejecutarlo en la Jetson**.
 - **No** se ha instalado el runtime completo, conectado la D435i, energizado el brazo desde Jetson ni movido servos.
 
-**Primera tarea de la siguiente sesión:** sincronizar en la Jetson los últimos cambios de la rama y ejecutar python3 jetson/pca9685_safe.py status (solo lectura), seguido de las pruebas unitarias. Después diseñar el adaptador de control seguro, sin alimentar motores. No instalar requirements.txt sobre Python 3.6.
+**Primera tarea de la siguiente sesión:** el comando `python3 jetson/pca9685_safe.py status` ya está validado en hardware (16/16 FULL OFF); ejecutar las nueve pruebas unitarias con Python 3.6, después diseñar el adaptador de control seguro sin alimentar motores. Después diseñar el adaptador de control seguro, sin alimentar motores. No instalar requirements.txt sobre Python 3.6.
 
 ## 2. Objetivo y alcance funcional
 
@@ -261,7 +261,7 @@ PR Raspberry Pi 4: https://github.com/Antonio-Richaud/Brazo-robot/pull/4
 - [x] Crear y validar entorno NVIDIA.
 - [x] Clonar el repositorio y seleccionar rama Jetson.
 - [x] Registrar bitácora y estado de continuidad en GitHub.
-- [ ] Sincronizar en la Jetson los commits de documentación creados desde GitHub.
+- [x] Sincronizar en la Jetson los commits de documentación y herramienta PCA9685 hasta el commit 83f54b5; los cambios posteriores requerirán nuevo `git pull`.
 
 ### Fase B — Separar backend moderno y controlador de hardware
 
@@ -276,7 +276,8 @@ PR Raspberry Pi 4: https://github.com/Antonio-Richaud/Brazo-robot/pull/4
 
 - [x] Comprobar comunicación I2C 0x40, registros, 50 Hz y FULL OFF sin alimentación de servos (no se midieron niveles eléctricos con instrumento).
 - [x] Incorporar utilidad inicial de diagnóstico y FULL OFF, sin API de armado (jetson/pca9685_safe.py; pruebas unitarias simuladas).
-- [ ] Validar la utilidad y nueve pruebas unitarias en la Jetson real.
+- [x] Validar `python3 jetson/pca9685_safe.py status` sobre la Jetson real: MODE1=0x01, MODE2=0x04, PRE_SCALE=0x79, FULL OFF 16/16.
+- [ ] Ejecutar las nueve pruebas unitarias con Python 3.6 en la Jetson real.
 - [ ] Implementar futuro adaptador Jetson de control, con armado explícito y PWM deshabilitado por defecto.
 - [ ] Añadir interruptor de corte físico de potencia y protocolo de arranque seguro.
 - [ ] Probar cada servo individualmente con fuente externa y límites calibrados.
