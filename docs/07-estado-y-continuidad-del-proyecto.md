@@ -1,7 +1,7 @@
 # Estado del proyecto y documento de continuidad — Brazo Robot + Jetson Nano
 
 **Fecha de corte inicial:** 26 de octubre de 2026  
-**Última actualización:** 30 de octubre de 2026 (I²C, `status`, `disable-all` y 9/9 tests comprobados; simulación de seis ejes añadida y 17 tests pendientes)  
+**Última actualización:** 30 de octubre de 2026 (I²C, `status`, `disable-all` y **26/26 tests comprobados en Jetson**; demo CLI pendiente)  
 **Repositorio:** https://github.com/Antonio-Richaud/Brazo-robot  
 **Rama de trabajo actual:** feat/jetson-nano-physical-ai  
 **Punto de partida del código:** main, commit 8251aa902c04192c4e1d8ed143515d59bfdd7f7a  
@@ -24,10 +24,10 @@ El objetivo es un **sandbox de IA/robótica física**: brazo de seis grados de l
 - Se clonó el repositorio y se seleccionó una rama nueva específica de Jetson.
 - Se conectó el PCA9685 a la Jetson por J6 e I²C bus 1: dirección 0x40 detectada, MODE1/MODE2/PRE_SCALE validados, frecuencia nominal 50 Hz preparada y salidas FULL OFF confirmadas en canales 0 y 15. OE está conectado físicamente a 3.3 V según la comprobación de cableado comunicada por el usuario.
 - Se agregó jetson/pca9685_safe.py (diagnóstico solo lectura y comando exclusivo FULL OFF, sin orden de armado/movimiento); `status` fue probado con el PCA9685 real y las **nueve pruebas simuladas se ejecutaron en la Jetson (9/9, OK, 0.003 s)**. El comando `disable-all` se ejecutó con éxito sobre el PCA9685 real (FULL OFF 16/16).
-- Se añadió `jetson/arm_simulation.py` con estado `DISARMED`, `SIM_ARMED` solo matemático, validación de los seis ejes, velocidad máxima por eje y watchdog de simulación. Las 17 pruebas nuevas están escritas, **todavía no ejecutadas en Jetson**.
+- Se añadió `jetson/arm_simulation.py` con estado `DISARMED`, `SIM_ARMED` solo matemático, validación de los seis ejes, velocidad máxima por eje y watchdog de simulación. Las 17 pruebas nuevas se ejecutaron en la Jetson junto con las nueve previas (**26/26 OK, 0.013 s**).
 - **No** se ha instalado el runtime completo, conectado la D435i, energizado el brazo desde Jetson ni movido servos.
 
-**Primera tarea de la siguiente sesión:** `status` ya validado en hardware (16/16 FULL OFF) y nueve pruebas unitarias ejecutadas en Python 3.6 (9/9, OK). La simulación independiente de seis ejes ya se añadió en `jetson/arm_simulation.py` con 17 tests; la siguiente tarea es ejecutar los 26 tests totales y la demo matemática en Jetson. No habilitar salidas físicas ni conectar la alimentación de los motores. No instalar requirements.txt sobre Python 3.6.
+**Primera tarea de la siguiente sesión:** `status` ya validado en hardware (16/16 FULL OFF) y nueve pruebas unitarias ejecutadas en Python 3.6 (9/9, OK). La simulación independiente de seis ejes está en `jetson/arm_simulation.py`: se ejecutaron y aprobaron **26/26 tests con Python 3.6 de la Jetson (0.013 s)**. Siguiente tarea: validar la demostración matemática `--demo` en Jetson. No habilitar salidas físicas ni conectar la alimentación de los motores. No instalar requirements.txt sobre Python 3.6.
 
 ## 2. Objetivo y alcance funcional
 
@@ -269,9 +269,10 @@ PR Raspberry Pi 4: https://github.com/Antonio-Richaud/Brazo-robot/pull/4
 - [ ] Auditar el contrato actual RobotController/SerialManager/RobotState.
 - [ ] Definir interfaz independiente de hardware (ESP32 serial, simulación, futuro adaptador Jetson).
 - [x] Añadir sandbox Jetson de seis ejes sin hardware (`jetson/arm_simulation.py`) con armado matemático explícito y estado DISARMED inicial.
-- [ ] Ejecutar las 17 pruebas nuevas en Jetson (26 pruebas totales) y confirmar la demo CLI.
+- [x] Ejecutar las 17 pruebas nuevas en Jetson con las nueve previas (26/26, `OK`, 0.013 s).
+- [ ] Confirmar la demostración `python3 jetson/arm_simulation.py --demo` en Jetson.
 - [ ] Integrar una interfaz de hardware con el backend moderno, sin permitir habilitación física todavía.
-- [x] Validar en simulación lógica de velocidades por articulación, timeout de watchdog (comprobación al invocarse) y bloqueo por FAULT, pendiente de ejecutar tests en Jetson.
+- [x] Validar en la Jetson (tests simulados) lógica de velocidades por articulación, timeout del watchdog cooperativo y bloqueo por FAULT.
 - [ ] Diseñar límites de aceleración y watchdog independientes de la aplicación para el hardware real.
 - [ ] Ejecutar pruebas unitarias y de simulación en un entorno compatible (Mac).
 - [x] Estudiar y probar pines J6 y comunicación I2C PCA9685 en Jetson Nano 2GB, sin alimentar motores.
