@@ -584,3 +584,13 @@ Mantener alimentacion V+ de servos apagada, OE alto a 3.3 V y `main` intacta.
 **Siguiente paso 9.51, pendiente:** mantener abierta la pagina 5174 y reiniciar solo la tuberia SSH→`jetson_demo_monitor.py --stdin-demo` en Mac, sin recargar el navegador. Verificar que la UI vuelva por si misma a `CONNECTED`, que el movimiento 90→125→90 se reanude y que los 10 controles permanezcan bloqueados en modo `monitor`. No reactivar hardware fisico ni el backend de control real.
 
 Mantener `OE` del PCA9685 alto a 3.3 V, servos sin potencia externa y rama `main` intacta.
+
+## 33. Paso 9.51: reconexion WebSocket del replay visible (30-10-2026)
+
+**Evidencia del usuario:** captura de Chrome del segundo dashboard en `http://127.0.0.1:5174/` tras el procedimiento de reiniciar el monitor Jetson (puerto 8767). La interfaz muestra `ENLACE LOCAL: CONNECTED`, `MONITOR`, `runtime_mode=jetson_replay` y escena 3D renderizada. La consola del dashboard registra eventos `[WS] cliente conectado`, `[WS] cliente desconectado` y otro `[WS] cliente conectado` con marcas alrededor de 21:39, además de `[JETSON] REPLAY de simulacion validada (NO hardware)`. No se ven errores `ERR_CONNECTION_REFUSED` nuevos; DevTools solo muestra advertencia residual de dependencia `THREE.Clock`.
+
+**Resultado confirmado:** tras estar en `RECONNECTING` con el monitor detenido, el enlace se ha restablecido a `CONNECTED` y el dashboard no ha dejado de renderizar. **Aún no consta evidencia del movimiento efectivamente reanudado** tras la reconexion, ni nueva verificacion DOM de los diez controles en el estado conectado recuperado. No registrar ambos como comprobados hasta recibir resultados.
+
+**Siguiente paso 9.51b:** comprobacion de solo lectura en DevTools del dashboard conectado, observar muestras sucesivas de la lectura de Base para confirmar que varia dentro de 90–125° y que los 4 botones y 6 sliders siguen `disabled=true`. No enviar comandos WebSocket, no tocar servos ni modificar geometría.
+
+Continúa siendo replay matematico no telemetria fisica en tiempo real. Mantener alimentacion de servos apagada, OE alto 3.3 V y rama `main` intacta.
