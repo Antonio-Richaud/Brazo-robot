@@ -459,10 +459,10 @@ Se incorporaron 17 tests nuevos en
 se ejecutó `python3 -m unittest discover -s jetson/tests -v` con
 **26 tests aprobados en 0.013 s (`OK`)**, incluyendo los nueve anteriores.
 `disable-all` también se había verificado contra el PCA9685 real (16/16 FULL OFF).
-**Pendiente:** ejecutar la demo matemática `python3 jetson/arm_simulation.py --demo`.
+**Demo matemática validada también en la Jetson:** `python3 jetson/arm_simulation.py --demo` produjo `T=0.1s base=97.0 deg`, `T=0.2s base=104.0 deg`, `T=0.3s base=111.0 deg`, `T=0.4s base=118.0 deg` y `T=0.5s base=125.0 deg`; terminó en `DISARMED`, con `hardware_enabled: false` y sin acceso a motores, I²C ni GPIO.
 
 Consultar [09-jetson-simulacion-seis-servos.md](09-jetson-simulacion-seis-servos.md).
 
 **Continuidad:** mantener OE alto (3.3 V), motores sin alimentación y
-main intacta; los 26 tests ya pasaron en la Jetson. Ejecutar la demo matemática
-sin hardware y verificar los resultados antes de cualquier integración adicional.
+main intacta; los 26 tests y la demo matemática ya pasaron en la Jetson.
+Siguiente paso: verificar en Mac el dashboard moderno en modo simulación, sin conectar ni energizar servos.
