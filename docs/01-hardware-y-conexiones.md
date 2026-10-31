@@ -18,6 +18,31 @@ El brazo separa la potencia de los servos de la alimentacion logica:
 La fuente de 5 V se conecta al terminal de potencia del PCA9685, nunca al pin
 de 3.3 V del ESP32.
 
+## Jetson Nano 2GB + PCA9685 (prueba I²C, sin motores)
+
+**Esta conexión es una alternativa experimental al ESP32**, no implica
+que el brazo ya sea controlable desde la Jetson. Se usa el conector
+**J6** de 40 pines físicos de la Jetson Nano 2GB, a nivel lógico de 3.3 V.
+
+| Jetson J6 (pin físico) | PCA9685 |
+|---|---|
+| 1: 3.3 V | VCC lógico |
+| 3: SDA | SDA |
+| 5: SCL | SCL |
+| 6: GND | GND |
+| 17: 3.3 V | OE (alto = salidas PWM inhibidas) |
+
+Bus probado: **/dev/i2c-1**, dirección **0x40**. El 30-10-2026
+se verificó detección y lectura/escritura de registros, frecuencia nominal
+de ~50 Hz, FULL OFF y OE conectado a 3.3 V; **no se energizaron motores**.
+
+Nunca conectar a la vez el ESP32 y la Jetson a las señales de lógica
+sin diseñar expresamente la topología eléctrica. La fuente de 5 V / 10 A
+de servos va a **V+**, no a VCC; permanecerá apagada durante esta fase.
+La inhibición OE y FULL OFF no sustituyen un interruptor físico de corte
+de potencia. Ver detalles en
+[08-jetson-pca9685-i2c-pruebas.md](08-jetson-pca9685-i2c-pruebas.md).
+
 ## Actuadores
 
 | ID | Articulacion | Servo | Canal | Home | Limite |
