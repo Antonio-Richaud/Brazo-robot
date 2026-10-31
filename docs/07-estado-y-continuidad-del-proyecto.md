@@ -398,8 +398,20 @@ Permanecen pendientes validación de conectividad SSH actual, implementación de
 
 **Paso 9.36, confirmado:** SSH Mac->Jetson con autenticacion por contrasena; Python 3.6.9; `ArmSimulation().snapshot()` enviado a Mac en JSON, seis ejes, `DISARMED`, `hardware_enabled=false`, `measured=false`. La validacion concluyo `JETSON_SIMULATION_READONLY_OK`. La advertencia SSH poscuantica no impidio la sesion.
 
-**Paso 9.37, implementado en rama pero pendiente de ejecutar:** nuevo `jetson/telemetry_stream.py` para emitir una demostracion finita de 13 tramas JSONL en Python 3.6, solo por stdout; la Base realiza una trayectoria puramente matematica 90->125->90 y vuelve a `DISARMED`. Nuevo `jetson/tests/test_telemetry_stream.py` con 10 pruebas adicionales. Hasta verificar en Jetson, el total esperado es 36, no un resultado comprobado.
+**Paso 9.37, comprobado en la Jetson real (30-10-2026):** `jetson/telemetry_stream.py` emitió 13 tramas JSONL por stdout (Base matemática 90→125→90, `DISARMED` final), y `jetson/tests/test_telemetry_stream.py` elevó el total de pruebas Jetson a **36/36 OK en 0.064 s**. La salida comprobó `JETSON_TELEMETRY_JSONL_OK` y ninguna habilitación de hardware.
 
 **Separacion de seguridad:** SSH es el unico transporte remoto usado hasta ahora; no se abren servidores TCP en Jetson, ni existen comandos de control remoto de motores. El frontend sigue funcionando con simulacion local de Mac, **no** alimentado por datos Jetson. Para integrarlo se requiere validador de esquema, modo de monitor remoto solo lectura con controles deshabilitados y manejo de desconexion.
 
-**Proxima accion:** actualizar la rama en la Jetson y ejecutar pruebas + demostracion JSONL. Mantener OE alto, alimentacion V+ de servos apagada y `main` sin cambios.
+**Paso siguiente:** validar en la Mac un receptor pasivo de las 13 tramas JSONL enviadas por SSH; únicamente después de pasar pruebas y validar datos remotos se diseñará un modo de visualización con controles deshabilitados. Mantener OE alto, alimentación V+ de servos apagada y `main` sin cambios.
+
+## 17. Paso 9.38: validador pasivo en Mac (pendiente de pruebas)
+
+El usuario verificó sobre la Jetson Nano 2GB: rama `feat/jetson-nano-physical-ai` actualizada mediante fast-forward, **36/36 tests OK (0.064 s)**, y demostración de 13 tramas `JSONL` con `Base 90→125→90`, `DISARMED` inicial/final y marcador `JETSON_TELEMETRY_JSONL_OK`. Las tramas provienen exclusivamente de simulación.
+
+**Implementado directamente en GitHub, por verificar en Mac:**
+
+- `control-center/backend/jetson_telemetry_reader.py`: validador **solo lectura** de stdin, sin SSH interno, sin acceso a red, GPIO, I²C, PWM o comandos WebSocket. Acepta exclusivamente `--stdin-demo`, 13 tramas v1 de `source=jetson_simulation`; rechaza `hardware_enabled`, `measured=true`, versiones, IDs/canales y ángulos desconocidos, secuencias inválidas, tamaño excesivo y retorno incorrecto a Home.
+- `control-center/backend/tests/test_jetson_telemetry_reader.py`: **22 tests** nuevos con reloj matemático simulado. Los **29 tests esperados del backend Mac (7+22)** todavía deben ejecutarse en la Mac antes de afirmarse aprobados.
+- La consola Mac abrirá el transporte SSH autenticado **de forma externa** y pasará stdout al validador con `|` y `set -o pipefail`. Ningún servicio nuevo en Jetson. Backend WebSocket y dashboard Mac **todavía no consumen** estas tramas.
+
+**Próxima acción verificada por el usuario:** sincronizar la rama en la Mac, ejecutar pruebas del backend y después el flujo `ssh ... python3 jetson/telemetry_stream.py --demo | python jetson_telemetry_reader.py --stdin-demo`. Esperado `MAC_JETSON_TELEMETRY_READONLY_OK`, todavía **no ejecutado**. Mantener `main` intacta, OE alto 3.3 V y V+ sin energizar.
