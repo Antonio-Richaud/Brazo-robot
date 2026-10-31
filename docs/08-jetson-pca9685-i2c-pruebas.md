@@ -274,7 +274,7 @@ IMPORTANTE: FULL OFF no reemplaza un corte fisico de potencia
 1. [Completado] Sincronizar la rama en la Jetson, ejecutar status (solo lectura) y verificar los 16 canales.
 2. [Completado] Probar la batería de nueve unidades con Python 3.6 de JetPack (9/9, `OK`, 0.003 s).
 3. [Completado] Ejecutar `python3 jetson/pca9685_safe.py disable-all` en la Jetson real; FULL OFF 16/16, MODE1=0x01, MODE2=0x04, PRE_SCALE=0x79.
-4. Diseñar una capa de software con estado DESARMADO inicial, validación de límites, timeout/watchdog y corte seguro ante fallos. No derivar la implementación de código ESP32 sin validar la diferencia de plataforma.
+4. [Código añadido, pendiente de pruebas en Jetson] Simulador sin hardware con DISARMED inicial, validación de límites, velocidades y watchdog cooperativo: [09-jetson-simulacion-seis-servos.md](09-jetson-simulacion-seis-servos.md). La seguridad de hardware y el corte físico siguen pendientes.
 5. Antes de alimentar servos: verificar tensión real de VCC/V+, polaridad de la fuente, tierra común, orden de los terminales de cada servo y dirección de sus conectores.
 6. Instalar y probar un mecanismo físico para cortar la alimentación de los servos (emergencia). OE es una protección de señal, no un corte de potencia.
 7. Habilitar solo un servo a la vez, sin carga, y calibrar pulsos individuales con tolerancia mecánica; nunca suponer que 1500 µs corresponde al centro mecánico seguro del brazo armado.
