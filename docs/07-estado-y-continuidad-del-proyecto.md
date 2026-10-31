@@ -1,7 +1,7 @@
 # Estado del proyecto y documento de continuidad — Brazo Robot + Jetson Nano
 
 **Fecha de corte inicial:** 26 de octubre de 2026  
-**Última actualización:** 30 de octubre de 2026 (I²C, `status`, `disable-all`, **26/26 tests** y demo CLI `--demo` verificados en Jetson)  
+**Última actualización:** 30 de octubre de 2026 (Jetson: I²C, 26/26 tests y demo; Mac: Python 3.12, backend 7/7 tests, servidor de simulación y frontend lint/build; dashboard visual pendiente)  
 **Repositorio:** https://github.com/Antonio-Richaud/Brazo-robot  
 **Rama de trabajo actual:** feat/jetson-nano-physical-ai  
 **Punto de partida del código:** main, commit 8251aa902c04192c4e1d8ed143515d59bfdd7f7a  
@@ -27,7 +27,7 @@ El objetivo es un **sandbox de IA/robótica física**: brazo de seis grados de l
 - Se añadió `jetson/arm_simulation.py` con estado `DISARMED`, `SIM_ARMED` solo matemático, validación de los seis ejes, velocidad máxima por eje y watchdog de simulación. Las 17 pruebas nuevas se ejecutaron en la Jetson junto con las nueve previas (**26/26 OK, 0.013 s**).
 - **No** se ha instalado el runtime completo, conectado la D435i, energizado el brazo desde Jetson ni movido servos.
 
-**Primera tarea de la siguiente sesión:** `status` ya validado en hardware (16/16 FULL OFF) y nueve pruebas unitarias ejecutadas en Python 3.6 (9/9, OK). La simulación independiente de seis ejes está en `jetson/arm_simulation.py`: se ejecutaron y aprobaron **26/26 tests con Python 3.6 de la Jetson (0.013 s)**. La demo matemática `--demo` también fue comprobada en Jetson (base: 90° → 97° → 104° → 111° → 118° → 125°; estado final DISARMED). **Siguiente etapa:** comprobar el entorno del dashboard 3D en la Mac y planear telemetría de solo lectura, sin habilitar PWM. No habilitar salidas físicas ni conectar la alimentación de los motores. No instalar requirements.txt sobre Python 3.6.
+**Siguiente tarea:** el backend moderno y las dependencias del frontend ya están preparados en la **Mac**, con Python 3.12.13, pruebas 7/7, servidor en `127.0.0.1:8765` (TCP comprobado), lint/build aprobados y commit `999367e` subido. Falta iniciar el frontend Vite y verificar el gemelo 3D y handshake WebSocket en navegador. El simulador separado de seis ejes de la Jetson sigue comprobado (26/26 tests y demo CLI 90°→125°), **sin puente Jetson→Mac**. No habilitar salidas físicas ni conectar potencia a motores. No instalar los requisitos del backend moderno en Python 3.6 de JetPack.
 
 ## 2. Objetivo y alcance funcional
 
@@ -274,7 +274,9 @@ PR Raspberry Pi 4: https://github.com/Antonio-Richaud/Brazo-robot/pull/4
 - [ ] Integrar una interfaz de hardware con el backend moderno, sin permitir habilitación física todavía.
 - [x] Validar en la Jetson (tests simulados) lógica de velocidades por articulación, timeout del watchdog cooperativo y bloqueo por FAULT.
 - [ ] Diseñar límites de aceleración y watchdog independientes de la aplicación para el hardware real.
-- [ ] Ejecutar pruebas unitarias y de simulación en un entorno compatible (Mac).
+- [x] Ejecutar las pruebas del backend moderno en la Mac con Python 3.12.13: 7/7 `unittest` OK; servidor iniciado explícitamente en simulación, conexión TCP `127.0.0.1:8765` comprobada.
+- [x] Instalar dependencias frontend, corregir 11 alertas de auditoría, validar lint y build en Mac: producción 0, desarrollo 6 moderadas en árbol ESLint/minimatch; commit `999367e` publicado en rama Jetson.
+- [ ] Verificar intercambio WebSocket y visualización 3D del navegador en la Mac; aún no verificados.
 - [x] Estudiar y probar pines J6 y comunicación I2C PCA9685 en Jetson Nano 2GB, sin alimentar motores.
 
 ### Fase C — Integración control físico
@@ -349,4 +351,28 @@ Si el estado Git tiene cambios locales, **no hacer reset --hard** ni descartar a
 - [08 — Cableado Jetson J6, diagnóstico PCA9685 y seguridad](08-jetson-pca9685-i2c-pruebas.md)
 - [09 — Simulación aislada de seis ejes en Python 3.6](09-jetson-simulacion-seis-servos.md)
 
-Este documento refleja lo confirmado hasta el 26-10-2026; versiones, IP, servicios y hardware deben volverse a consultar si transcurre tiempo o se cambia la instalación.
+Este documento incorpora los resultados confirmados hasta el 30-10-2026; versiones, IP, servicios y hardware deben volverse a consultar si transcurre tiempo o se cambia la instalación.
+
+## 14. Avances Mac: línea base del Control Center (30-10-2026)
+
+Se siguieron los pasos 9.18–9.30, validados con salidas reales en la MacBook Air. **No constituyen pruebas de integración Jetson→Mac ni movimiento físico**.
+
+| Área | Confirmado |
+|---|---|
+| Herramientas Mac | Python 3.14.7 predeterminado, Python 3.12.13 para backend, Node.js 24.18.0, npm 11.16.0 |
+| Rama de trabajo | `feat/jetson-nano-physical-ai`, limpia al cerrar el commit de dependencias |
+| Backend | `.venv` Python 3.12.13, `pygame 2.6.1`, `pyserial 3.5`, `websockets 16.0`, `pip check` OK |
+| Tests backend | **7/7 OK** |
+| Servidor backend | `ROBOT_WS_HOST=127.0.0.1 python main.py --mode simulation --perception off --no-joystick`, Python escuchando `127.0.0.1:8765`, TCP OK |
+| Frontend | `npm ci` y `npm audit fix` sin `--force`; `npm run lint` OK; `npm run build` OK con Vite 8.3.5 (571 módulos) |
+| Auditoría npm | Inicial: 17 (10 moderadas, 7 altas); posterior: 6 moderadas de desarrollo (ESLint/`minimatch`); **producción 0** |
+| GitHub | Commit `999367e`: solo `control-center/frontend/package-lock.json`, publicado en la rama de trabajo; `main` no modificado |
+
+**Alcance de la comprobación:** escuchar TCP **no equivale** a verificar un WebSocket correcto. El frontend aún no se ha arrancado ni revisado visualmente. Queda pendiente investigar `minimatch` y la versión de ESLint sin soporte sin usar actualizaciones forzadas.
+
+**Próximo paso de una sola ejecución en Mac:** después de sincronizar nuevos commits de documentación con `git pull --ff-only origin feat/jetson-nano-physical-ai`, iniciar en otra terminal:
+```bash
+cd ~/Documents/GitHub/Brazo-robot/control-center/frontend
+npm run dev -- --host 127.0.0.1
+```
+Abrir la URL local que imprima Vite (habitualmente `http://127.0.0.1:5173/`), comprobar visualización 3D, estado de conexión y consola. Mantener el backend local activo, `OE` alto (3.3 V), fuente externa de servos apagada y la Jetson sin nuevos servicios de red.
