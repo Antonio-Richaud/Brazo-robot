@@ -511,3 +511,13 @@ Esto resuelve el alcance **numérico** de la diferencia entre los «180°» desc
 **Paso siguiente 9.46:** con el monitor Jetson `:8767` y el frontend `:5174` activos, abrir DevTools, desactivar `Preserve log` si estuviera habilitado, limpiar la consola, recargar `http://127.0.0.1:5174/` y observar durante varios segundos nuevos errores o advertencias. Verificar que la animación continúa y los controles siguen deshabilitados. Solicitar únicamente el resultado de esa inspección. No cambiar servos, backend ni geometría.
 
 **Seguridad:** la reproducción se basa en datos matemáticos de Jetson; no hay medición física ni habilitación de PWM. OE alto a 3.3 V, fuente externa apagada y `main` intacta.
+
+## 26. Paso 9.46: sin errores visibles; advertencias ocultas por filtro (30-10-2026)
+
+El usuario compartió una captura posterior al cambio de favicon SVG y `THREE.PCFShadowMap`, desde `http://127.0.0.1:5174/`, que muestra el gemelo digital 3D renderizado, `CONNECTED`, etiqueta `MONITOR`, `runtime_mode=jetson_replay` y ninguna línea de error roja visible. El favicon ya había devuelto `FAVICON_HTTP_200`; el anterior error 404 no aparece en esta captura.
+
+**Límite de la evidencia:** DevTools está filtrado como **`Solo Errores`**; la barra superior de Chrome muestra **2 advertencias** y **`5 ocultos`**. Por tanto, es correcto afirmar que no hay errores rojos visibles en esta vista, pero **todavía no** que la consola esté totalmente libre de advertencias o que la deprecación `PCFSoftShadowMap` haya desaparecido en tiempo de ejecución.
+
+**Siguiente comprobación mínima:** cambiar el filtro de consola a **todos los niveles** (`Niveles predeterminados`), limpiar los registros y recargar la página; verificar si reaparece `PCFSoftShadowMap` o surge otra advertencia. Solicitar el contenido o captura de los avisos nuevos. No tocar backend, servos, geometry 3D ni el control de la Jetson durante esta comprobación.
+
+El monitor continúa siendo replay matemático de solo lectura; mantener OE alto a 3.3 V, potencia de servos apagada y `main` intacta.
