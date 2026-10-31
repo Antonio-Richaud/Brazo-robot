@@ -1,7 +1,7 @@
 # Estado del proyecto y documento de continuidad — Brazo Robot + Jetson Nano
 
 **Fecha de corte inicial:** 26 de octubre de 2026  
-**Última actualización:** 30 de octubre de 2026 (I²C, `status`, `disable-all` y **26/26 tests comprobados en Jetson**; demo CLI pendiente)  
+**Última actualización:** 30 de octubre de 2026 (I²C, `status`, `disable-all`, **26/26 tests** y demo CLI `--demo` verificados en Jetson)  
 **Repositorio:** https://github.com/Antonio-Richaud/Brazo-robot  
 **Rama de trabajo actual:** feat/jetson-nano-physical-ai  
 **Punto de partida del código:** main, commit 8251aa902c04192c4e1d8ed143515d59bfdd7f7a  
@@ -27,7 +27,7 @@ El objetivo es un **sandbox de IA/robótica física**: brazo de seis grados de l
 - Se añadió `jetson/arm_simulation.py` con estado `DISARMED`, `SIM_ARMED` solo matemático, validación de los seis ejes, velocidad máxima por eje y watchdog de simulación. Las 17 pruebas nuevas se ejecutaron en la Jetson junto con las nueve previas (**26/26 OK, 0.013 s**).
 - **No** se ha instalado el runtime completo, conectado la D435i, energizado el brazo desde Jetson ni movido servos.
 
-**Primera tarea de la siguiente sesión:** `status` ya validado en hardware (16/16 FULL OFF) y nueve pruebas unitarias ejecutadas en Python 3.6 (9/9, OK). La simulación independiente de seis ejes está en `jetson/arm_simulation.py`: se ejecutaron y aprobaron **26/26 tests con Python 3.6 de la Jetson (0.013 s)**. Siguiente tarea: validar la demostración matemática `--demo` en Jetson. No habilitar salidas físicas ni conectar la alimentación de los motores. No instalar requirements.txt sobre Python 3.6.
+**Primera tarea de la siguiente sesión:** `status` ya validado en hardware (16/16 FULL OFF) y nueve pruebas unitarias ejecutadas en Python 3.6 (9/9, OK). La simulación independiente de seis ejes está en `jetson/arm_simulation.py`: se ejecutaron y aprobaron **26/26 tests con Python 3.6 de la Jetson (0.013 s)**. La demo matemática `--demo` también fue comprobada en Jetson (base: 90° → 97° → 104° → 111° → 118° → 125°; estado final DISARMED). **Siguiente etapa:** comprobar el entorno del dashboard 3D en la Mac y planear telemetría de solo lectura, sin habilitar PWM. No habilitar salidas físicas ni conectar la alimentación de los motores. No instalar requirements.txt sobre Python 3.6.
 
 ## 2. Objetivo y alcance funcional
 
@@ -270,7 +270,7 @@ PR Raspberry Pi 4: https://github.com/Antonio-Richaud/Brazo-robot/pull/4
 - [ ] Definir interfaz independiente de hardware (ESP32 serial, simulación, futuro adaptador Jetson).
 - [x] Añadir sandbox Jetson de seis ejes sin hardware (`jetson/arm_simulation.py`) con armado matemático explícito y estado DISARMED inicial.
 - [x] Ejecutar las 17 pruebas nuevas en Jetson con las nueve previas (26/26, `OK`, 0.013 s).
-- [ ] Confirmar la demostración `python3 jetson/arm_simulation.py --demo` en Jetson.
+- [x] Confirmar la demostración `python3 jetson/arm_simulation.py --demo` en Jetson: trayectoria 90° → 125° en cinco pasos; `DISARMED`, `hardware_enabled: false`, sin I²C/GPIO.
 - [ ] Integrar una interfaz de hardware con el backend moderno, sin permitir habilitación física todavía.
 - [x] Validar en la Jetson (tests simulados) lógica de velocidades por articulación, timeout del watchdog cooperativo y bloqueo por FAULT.
 - [ ] Diseñar límites de aceleración y watchdog independientes de la aplicación para el hardware real.
@@ -300,6 +300,8 @@ PR Raspberry Pi 4: https://github.com/Antonio-Richaud/Brazo-robot/pull/4
 ### Fase E — Gemelo digital, gestos y agente
 
 - [ ] Sincronizar estado del brazo y mostrar explícitamente posición estimada.
+- [ ] Verificar el dashboard 3D existente en Mac en modo simulación y sin joystick antes de integrar telemetría Jetson.
+- [ ] Definir e implementar puente de telemetría solo lectura desde el simulador Jetson al backend moderno; sin habilitar control físico.
 - [ ] Probar comandos manuales/joystick y visualización en simulación.
 - [ ] Añadir reconocimiento de gestos mediante una arquitectura compatible con los recursos.
 - [ ] Introducir agente que genere propuestas de movimiento, sometidas a autorización y límites.
