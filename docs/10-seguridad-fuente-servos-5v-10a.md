@@ -129,3 +129,20 @@ IMPORTANTE: FULL OFF no reemplaza un corte fisico de potencia
 **Puerta de entrada al siguiente paso:** comprobar disponibilidad de multimetro y corte fisico accesible de V+; revisar la salida DC y el estado OE unicamente en el lado de baja tension, evitando terminales AC. Si L/N/PE estan expuestos, no hacer mediciones con la fuente energizada; solicitar revision de una persona electricamente competente. No retirar OE ni enviar PWM hasta validar condiciones previas y planificar un servo de prueba individual.
 
 La rama activa de trabajo es `feat/jetson-servo-power-safety`; `main` permanece como linea base ya fusionada.
+
+## 9. Paso 10.3: 5 V en V+ y 3.3 V en OE reportados (31 de octubre de 2026)
+
+Tras la lectura I2C real `Canales FULL OFF: 16/16`, se solicito comprobar los niveles DC `V+` con respecto a `GND` y `OE` con respecto a `GND`. El usuario respondio: **«Si tiene 5 v y 3.3 v»**. Registrar como **mediciones/valores reportados por el usuario**, no como prueba instrumental independiente ni certificacion de toda la instalacion:
+
+| Punto solicitado | Valor reportado | Interpretacion |
+|---|---:|---|
+| V+ con respecto a GND de potencia | 5 V DC | Alimentacion nominal de servos presente |
+| OE con respecto a GND logico | 3.3 V DC | Nivel alto esperado que inhibe salidas del PCA9685 |
+
+En la prueba anterior la Jetson tambien confirmo por I2C `FULL OFF 16/16`. Por tanto, los tres indicadores son consistentes con el estado esperado para seguir **preparando**, no accionando, motores. La fuente `5 V / 10 A` tiene corriente nominal disponible de hasta 10 A, que no representa consumo fijo de 10 A.
+
+**Pendiente critico antes de permitir siquiera un comando de movimiento:** confirmar un **corte fisico de los 5 V de potencia de servos** accesible, adecuado para corriente DC y **separado de la alimentacion de la Jetson**. OE y FULL OFF no son un paro de emergencia: no cortan V+. Debe validarse tambien que se puede probar un solo servo sin carga, con limites mecanicos y salida deshabilitada por defecto; no retirar OE ni emitir PWM durante esta etapa.
+
+**Siguiente pregunta unica al usuario:** ¿ya hay un interruptor fisico o paro de emergencia que corte la potencia V+ de los servos de inmediato, sin depender del software ni de que la Jetson responda? Si no, disenar y comprobarlo antes de ensayar movimiento. No confundir un boton de control WebSocket/Home con paro fisico.
+
+**Importante:** los valores en V+ y OE no sustituyen validacion de PE de la fuente AC, protecciones contra cortocircuito, calibre de conductores ni comprobacion bajo carga. No tocar bornes ni manipular conectores energizados.
