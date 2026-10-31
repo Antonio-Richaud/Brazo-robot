@@ -2,7 +2,9 @@
 
 **Inicio de fase:** 30 de octubre de 2026.
 **Rama:** `feat/jetson-servo-power-safety`, creada desde el merge PR #5 en `main` (`c8d76688bbbb6fd272e3154707ed6948434e5e38`).
-**Estado de esta fase:** exclusivamente **evaluacion del cableado y planificacion**. **La fuente no se ha energizado ni conectado al bloque V+ del PCA9685.**
+**Estado actual (31 de octubre de 2026, declarado por el usuario):** la fuente conmutada nominal de **5 V / 10 A ya esta conectada y alimenta el circuito de potencia del PCA9685**. El usuario indica que realizo correctamente el montaje. **No hay fotos, mediciones de tension/corriente ni inspeccion electrica independiente**; no presentar la instalacion como medida o certificada. Siguiente paso: leer el estado I2C sin habilitar PWM.
+
+**Nota cronologica:** los apartados 1–6 representan el plan previo al primer encendido (30 de octubre). Los textos que describen la fuente como desconectada son historicos y ya no corresponden al estado reportado. No manipular cableado energizado; consultar apartado 7.
 
 ## 1. Estado comprobado al abrir esta etapa
 
@@ -82,3 +84,23 @@ No asumir que la fuente tiene selector o que corresponde a entrada 127 V AC por 
 **Solicitar las fotos de etiqueta, bornes y cableado actual de la fuente**, sin encenderla. Con esas imágenes elaborar un mapa del circuito real y las precauciones concretas, empezando por la inspección sin energía. El objetivo inmediato no es mover un servo ni activar la fuente de forma improvisada.
 
 **Referencia:** [01-hardware-y-conexiones.md](01-hardware-y-conexiones.md), [08-jetson-pca9685-i2c-pruebas.md](08-jetson-pca9685-i2c-pruebas.md), [09-jetson-simulacion-seis-servos.md](09-jetson-simulacion-seis-servos.md).
+
+
+## 7. Estado de alimentacion reportado y proximo chequeo (31 de octubre de 2026)
+
+El usuario indica expresamente: **«Ya esta, ya recibe 5V 10A el PCA9685, confia en que ya lo hice correctamente»**. Registrar que **el montaje actual tiene alimentacion en la entrada de potencia del PCA9685**, por fuente de 5 V / 10 A nominales, segun declaracion del usuario. **10 A indica capacidad de corriente de la fuente y NO consumo constante de la placa o de los servos.**
+
+**Limites de verificacion:** las ultimas pruebas de `FULL OFF` 16/16 se realizaron antes de energizar la fuente. El nivel electrico de OE y la tension de V+ no se han medido instrumentalmente en esta conversacion. Tampoco se ha comprobado un corte fisico de emergencia. Estas observaciones no desacreditan el montaje reportado: son pruebas pendientes distintas.
+
+**Paso 10.2, solo lectura:** desde Mac, con la Jetson en red y sin mover conectores:
+
+```bash
+ssh -T -o ConnectTimeout=10 antonio@jetson-nano.local \
+  'cd "$HOME/robot-lab/Brazo-robot" && python3 jetson/pca9685_safe.py status'
+```
+
+Resultado esperado: `Canales FULL OFF: 16/16` y `TODOS DESHABILITADOS: SI`. La herramienta lee registros de I2C; no mide OE ni V+, no emite PWM y no mueve motores.
+
+Si algun servo se mueve inesperadamente, aparece olor, humo, calor anormal o ruido electrico, cortar alimentacion **con el interruptor/desconexion fisica segura**, no tocando bornes ni cables energizados. No ejecutar `disable-all`, pulsos o comandos de movimiento durante esta comprobacion.
+
+**Siguientes decisiones:** confirmar estado de los servos y de la desconexion fisica de potencia, y planificar calibracion de un servo a la vez. Trabajar solo en `feat/jetson-servo-power-safety`.
