@@ -2,7 +2,7 @@
 
 **Fecha:** 30 de octubre de 2026  
 **Estado:** código y 17 pruebas unitarias añadidos a GitHub; **pendiente ejecutar en Jetson Nano real con Python 3.6**.  
-**Rama:** \`feat/jetson-nano-physical-ai\`.
+**Rama:** `feat/jetson-nano-physical-ai`.
 
 ## Objetivo
 
@@ -21,12 +21,12 @@ simulador y el PCA9685. **Esta fase no habilita ningún motor físico**.
 
 ## 1. Separación estricta
 
-\`jetson/arm_simulation.py\` solo importa \`argparse\`, \`json\`, \`math\`,
-\`time\` y \`collections\` (biblioteca estándar). No importa I²C,
+`jetson/arm_simulation.py` solo importa `argparse`, `json`, `math`,
+`time` y `collections` (biblioteca estándar). No importa I²C,
 GPIO, serial ni el diagnóstico del PCA9685. No tiene API de
 habilitación PWM ni conexiones con la fuente de servos.
 
-El estado \`SIM_ARMED\` es una **habilitación ficticia de simulación en RAM**.
+El estado `SIM_ARMED` es una **habilitación ficticia de simulación en RAM**.
 Jamás debe confundirse con una señal OE baja, un motor energizado ni un
 controlador real armado. No existe opción CLI para armar hardware.
 
@@ -36,7 +36,7 @@ conexión con el gemelo digital. Esa integración queda para otra etapa.
 ## 2. Parámetros idénticos a los configurados en el Control Center
 
 La Jetson usa Python 3.6 y no puede importar directamente
-\`control-center/backend/config.py\`, que usa características modernas.
+`control-center/backend/config.py`, que usa características modernas.
 Por tanto, los siguientes datos están copiados como constantes del contrato
 actual: si se cambia ese contrato, se deben actualizar y probar ambas tablas.
 
@@ -69,13 +69,13 @@ stateDiagram-v2
 - **SIM_ARMED**: admite objetivos de los seis ejes solo después de una
   activación simulada explícita, valida IDs, números finitos y límites.
 - **FAULT**: detiene el cambio de posiciones simuladas, mantiene objetivo
-  igual a posición actual y exige \`reset_fault()\` antes de volver a simular.
+  igual a posición actual y exige `reset_fault()` antes de volver a simular.
 
 El simulador limita el cambio por articulación a la velocidad de su tabla,
 multiplicada por hasta **0.1 segundos de paso**, para no acumular saltos
 si una iteración se demora. Su watchdog predeterminado vence tras
 **1 segundo sin heartbeat ni orden válida**, pero solo se comprueba
-cuando se invoca \`tick()\`, \`heartbeat()\` o una orden.
+cuando se invoca `tick()`, `heartbeat()` o una orden.
 
 **Advertencia:** esto no equivale a un watchdog independiente,
 limitador de aceleración, enclavamiento eléctrico, medición física de ángulo
@@ -84,7 +84,7 @@ cualquier integración física.
 
 ## 4. Primera prueba en la Jetson (sin hardware)
 
-Mantener la fuente de servos **apagada**, y \`OE\` del PCA9685 conectado
+Mantener la fuente de servos **apagada**, y `OE` del PCA9685 conectado
 a **3.3 V**. Desde SSH en la Jetson:
 
 ~~~bash
@@ -118,13 +118,13 @@ SIMULACION TERMINADA: sin motores, sin I2C y sin GPIO
 ~~~
 
 También imprime estados JSON completos inicial y final con
-\`hardware_enabled: false\`, \`measured: false\` y el estado
-\`DISARMED\` al finalizar. Se ejecuta usando un reloj falso
+`hardware_enabled: false`, `measured: false` y el estado
+`DISARMED` al finalizar. Se ejecuta usando un reloj falso
 determinista: no espera ni controla servos.
 
 ## 5. Riesgos y próximos pasos
 
-1. Ejecutar los 26 tests en Jetson y validar \`--demo\` (todavía pendientes).
+1. Ejecutar los 26 tests en Jetson y validar `--demo` (todavía pendientes).
 2. Diseñar una interfaz de comandos y eventos reutilizable entre el
    backend moderno de Mac y el futuro servicio Jetson, sin conectar aún PWM.
 3. Validar límites de aceleración, secuencias, autenticación y reacción
