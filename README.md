@@ -27,7 +27,10 @@ OpenCV 4.1.1, TensorRT 8.2.1.8, acceso SSH por
 
 **Estado comprobado (30-10-2026):** sistema y bibliotecas NVIDIA funcionales.
 El PCA9685 **ya fue detectado en el bus I²C 1 (0x40)** y se leyeron/escribieron
-registros con los canales en FULL OFF y OE conectado a 3.3 V. Esto **no**
+registros con los canales en FULL OFF y OE conectado a 3.3 V. Se validaron
+`status` y `disable-all` en el dispositivo real y 9/9 tests con bus simulado.
+Además, hay un simulador aislado de seis ejes con 17 tests nuevos,
+**pendientes de ejecutar en la Jetson**. Esto **no**
 significa que el control directo de servos esté terminado: los motores siguen
 sin alimentar y no se han probado movimientos. El nodo RealSense y el backend
 moderno tampoco se han desplegado en la Jetson; ese backend requiere Python
@@ -37,6 +40,7 @@ moderno y no debe instalarse directamente sobre Python 3.6 de JetPack.
 - [Estado del proyecto, arquitectura, riesgos y punto de continuidad](docs/07-estado-y-continuidad-del-proyecto.md).
 - [Cableado J6 y pruebas I²C verificadas con PCA9685](docs/08-jetson-pca9685-i2c-pruebas.md).
 - [Utilidad de inspección segura compatible con Python 3.6](jetson/pca9685_safe.py).
+- [Simulación aislada de seis servos, sin acceso a hardware](docs/09-jetson-simulacion-seis-servos.md).
 
 ## Arquitectura
 
@@ -67,7 +71,12 @@ Brazo-robot/
 │   ├── 05-manual-de-uso-y-pruebas.md
 │   ├── 06-bitacora-instalacion-jetson-nano.md
 │   ├── 07-estado-y-continuidad-del-proyecto.md
-│   └── 08-jetson-pca9685-i2c-pruebas.md
+│   ├── 08-jetson-pca9685-i2c-pruebas.md
+│   └── 09-jetson-simulacion-seis-servos.md
+├── jetson/
+│   ├── pca9685_safe.py
+│   ├── arm_simulation.py
+│   └── tests/
 ├── robot_arm_controller/
 │   └── robot_arm_controller.ino
 └── control-center/
