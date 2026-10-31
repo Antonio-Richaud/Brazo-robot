@@ -214,19 +214,49 @@ OE: NO verificable por I2C; mantener OE -> 3.3 V
 IMPORTANTE: FULL OFF no reemplaza un corte fisico de potencia
 ~~~
 
-**Conclusión:** el programa de inspección funciona y lee los 16 canales desde la Jetson. El estado del pin OE no se ha medido eléctricamente. La acción `disable-all` del programa todavía no se ha ejecutado en la Jetson real. Las nueve pruebas unitarias están **definidas, pero pendientes de ejecución** sobre Python 3.6 de la Jetson; no se ha recibido su resultado.
+**Conclusión:** el programa de inspección funciona y lee los 16 canales desde la Jetson. El estado del pin OE no se ha medido eléctricamente. La acción `disable-all` del programa todavía no se ha ejecutado en la Jetson real. Las nueve pruebas unitarias **se ejecutaron después con éxito** sobre Python 3.6 de la Jetson: 9/9 aprobadas en 0.003 s (`OK`). Ninguna de ellas energiza motores o modifica el PCA9685 real.
+
+### 5.1. Ejecución de las nueve pruebas en la Jetson Nano real
+
+El usuario ejecutó desde la Jetson, tras actualizar al commit `3bf41cb`:
+
+~~~bash
+cd ~/robot-lab/Brazo-robot
+python3 -m unittest discover -s jetson/tests -v
+~~~
+
+Resultado real:
+
+~~~text
+test_disable_all_fails_if_hardware_does_not_accept_command ... ok
+test_disable_all_sets_full_off_on_each_channel ... ok
+test_no_enable_or_arm_api ... ok
+test_no_stage_if_any_channel_is_enabled ... ok
+test_no_stage_out_of_range ... ok
+test_no_stage_with_wrong_prescale ... ok
+test_stage_disabled_1500us_channel_zero ... ok
+test_status_is_read_only ... ok
+test_transport_restricts_bus_and_address ... ok
+
+Ran 9 tests in 0.003s
+
+OK
+~~~
+
+**Alcance:** se validó compatibilidad y lógica con un bus simulado en Python 3.6 de la Jetson. Esto **no valida eléctricamente OE, V+ ni el movimiento físico de un servo**. La acción `disable-all` contra el hardware real sigue pendiente.
 
 ## 6. Próximas pruebas y requisitos antes de mover el brazo
 
 1. [Completado] Sincronizar la rama en la Jetson, ejecutar status (solo lectura) y verificar los 16 canales.
-2. [Pendiente] Probar la batería de unidades con Python 3.6 de JetPack.
-3. Diseñar una capa de software con estado DESARMADO inicial, validación de límites, timeout/watchdog y corte seguro ante fallos. No derivar la implementación de código ESP32 sin validar la diferencia de plataforma.
-4. Antes de alimentar servos: verificar tensión real de VCC/V+, polaridad de la fuente, tierra común, orden de los terminales de cada servo y dirección de sus conectores.
-5. Instalar y probar un mecanismo físico para cortar la alimentación de los servos (emergencia). OE es una protección de señal, no un corte de potencia.
-6. Habilitar solo un servo a la vez, sin carga, y calibrar pulsos individuales con tolerancia mecánica; nunca suponer que 1500 µs corresponde al centro mecánico seguro del brazo armado.
-7. Incorporar control con seguridad por defecto, telemetría y gemelo digital y pruebas automatizadas antes de autonomía.
+2. [Completado] Probar la batería de nueve unidades con Python 3.6 de JetPack (9/9, `OK`, 0.003 s).
+3. [Pendiente] Ejecutar `python3 jetson/pca9685_safe.py disable-all` en la Jetson real manteniendo OE en alto y V+ sin alimentar; volver a inspeccionar FULL OFF 16/16.
+4. Diseñar una capa de software con estado DESARMADO inicial, validación de límites, timeout/watchdog y corte seguro ante fallos. No derivar la implementación de código ESP32 sin validar la diferencia de plataforma.
+5. Antes de alimentar servos: verificar tensión real de VCC/V+, polaridad de la fuente, tierra común, orden de los terminales de cada servo y dirección de sus conectores.
+6. Instalar y probar un mecanismo físico para cortar la alimentación de los servos (emergencia). OE es una protección de señal, no un corte de potencia.
+7. Habilitar solo un servo a la vez, sin carga, y calibrar pulsos individuales con tolerancia mecánica; nunca suponer que 1500 µs corresponde al centro mecánico seguro del brazo armado.
+8. Incorporar control con seguridad por defecto, telemetría y gemelo digital y pruebas automatizadas antes de autonomía.
 
-**No hacer los puntos 4–7 sin diseño y revisión del cableado.**
+**No hacer los puntos 5–8 sin diseño y revisión del cableado.**
 
 ## 7. Hojas de datos y referencias
 
