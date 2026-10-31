@@ -28,9 +28,10 @@ OpenCV 4.1.1, TensorRT 8.2.1.8, acceso SSH por
 **Estado comprobado (30-10-2026):** sistema y bibliotecas NVIDIA funcionales.
 El PCA9685 **ya fue detectado en el bus I²C 1 (0x40)** y se leyeron/escribieron
 registros con los canales en FULL OFF y OE conectado a 3.3 V. Se validaron
-`status` y `disable-all` en el dispositivo real y 9/9 tests con bus simulado.
-Además, hay un simulador aislado de seis ejes con 17 tests nuevos,
-**pendientes de ejecutar en la Jetson**. Esto **no**
+`status` y `disable-all` en el dispositivo real. También se ejecutaron
+**26/26 pruebas unitarias correctamente en la Jetson con Python 3.6.9**
+(9 del PCA9685 simulado y 17 del simulador aislado de seis ejes).
+La demostración CLI del simulador sigue pendiente de validación. Esto **no**
 significa que el control directo de servos esté terminado: los motores siguen
 sin alimentar y no se han probado movimientos. El nodo RealSense y el backend
 moderno tampoco se han desplegado en la Jetson; ese backend requiere Python
