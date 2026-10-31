@@ -12,6 +12,10 @@ const COLORS = {
   red: '#ff667f',
 }
 
+// Three.js actual recomienda PCFShadowMap en lugar de PCFSoftShadowMap.
+// Mantener esta configuracion estable evita reactivar la opcion obsoleta.
+const SHADOW_SETTINGS = { type: THREE.PCFShadowMap }
+
 function damp(current, target, delta, speed = 13) {
   return THREE.MathUtils.lerp(current, target, 1 - Math.exp(-speed * delta))
 }
@@ -262,7 +266,7 @@ export function RobotScene({ robot, activeName }) {
       camera={{ position: [6.8, 5.2, 7.8], fov: 39, near: 0.1, far: 60 }}
       dpr={[1, 1.7]}
       gl={{ antialias: true, powerPreference: 'high-performance' }}
-      shadows
+      shadows={SHADOW_SETTINGS}
     >
       <Scene robot={robot} activeName={activeName} />
     </Canvas>
