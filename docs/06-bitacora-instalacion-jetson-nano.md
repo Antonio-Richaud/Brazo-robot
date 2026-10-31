@@ -441,3 +441,27 @@ la escritura global se aceptó y el programa confirmó `Canales FULL OFF: 16/16`
 **Siguiente fase:** simulación aislada de los seis servos y diseño seguro del controlador.
 No retirar OE de 3.3 V ni conectar la alimentación
 de los servos hasta diseñar y verificar el sistema de armado y corte físico.
+
+## 15. Simulación aislada de seis servos — 30 de octubre de 2026
+
+Se creó en la rama Jetson el módulo `jetson/arm_simulation.py` sin GPIO,
+I2C, red ni serial, usando únicamente Python 3.6 estándar, con tabla de
+seis servos copiada del contrato del Control Center moderno.
+
+Características: estado DISARMED inicial; SIM_ARMED solo matemático;
+validación de IDs 1..6, límites de ángulos y números finitos; velocidades
+nominales por servo; límite máximo de paso de 100 ms; watchdog simulado
+de un segundo; FAULT y reset explícito. El watchdog es cooperativo,
+NO es un corte de motor ni un mecanismo de seguridad física.
+
+Se incorporaron 17 tests nuevos en
+`jetson/tests/test_arm_simulation.py`. **Pendiente: ejecutar estas pruebas
+en la Jetson con Python 3.6 y confirmar la demo sin hardware**. Los nueve
+tests previos ya habían pasado y `disable-all` se verificó contra
+el PCA9685 real (16/16 FULL OFF). Se esperan 26 tests totales.
+
+Consultar [09-jetson-simulacion-seis-servos.md](09-jetson-simulacion-seis-servos.md).
+
+**Continuidad:** mantener OE alto (3.3 V), motores sin alimentación y
+main intacta; ejecutar `python3 -m unittest discover -s jetson/tests -v`
+antes de cualquier integración adicional.
