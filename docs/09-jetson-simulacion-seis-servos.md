@@ -392,3 +392,13 @@ La Mac incorporó el cambio de `useRobotSocket.js` mediante fast-forward `45cd2f
 **Pendiente:** ejecutar revisión visual/DevTools del puerto 5174 con niveles predeterminados y consola limpia; comprobar que el WebSocket de replay permanece `CONNECTED` sin advertencia de cierre antes de establecerse, y que la Base sigue animándose mientras los controles están deshabilitados. La advertencia de `THREE.Clock` se clasifica por separado como dependencia y no está corregida.
 
 Continuar exclusivamente en simulación/replay, con el PCA9685 en OE alto y servos sin alimentación.
+
+## 23. Paso 9.49: limpieza de aviso WebSocket confirmada (30-10-2026)
+
+El usuario compartió una nueva captura de Chrome DevTools en `127.0.0.1:5174` con el dashboard `CONNECTED` en modo `MONITOR` y la escena 3D mostrada. Tras el cambio de `useRobotSocket.js`, **ya no aparece** la advertencia de WebSocket cerrado antes del establecimiento. No aparecen tampoco el 404 de `/favicon.ico` ni la deprecación `PCFSoftShadowMap`.
+
+La única advertencia visible restante es `THREE.THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.` vinculada a `<Canvas>` de React Three Fiber. Se considera advertencia de compatibilidad de dependencia no bloqueante; **no está corregida**, y no es adecuado cambiar versiones forzosamente para ocultarla.
+
+**Siguiente verificación segura:** comprobar que al detener **solo el monitor de replay** en Mac (`Ctrl+C`, puerto 8767) la UI pasa a `reconnecting`, deja de recibir actualizaciones y los 10 controles siguen deshabilitados; luego comprobar recuperación con el monitor reactivado. Estos pasos no tocan servos reales ni comandos de movimiento.
+
+OE alto a 3.3 V, potencia de servos apagada y `main` intacta.
