@@ -486,3 +486,18 @@ Esto resuelve el alcance **numérico** de la diferencia entre los «180°» desc
 **Observación adicional en la captura:** aparecen muchas advertencias repetidas de Three.js (`THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.`), con contador superior de aproximadamente **1163 advertencias** y un indicador de **1 error** cuyo mensaje no se ve. `undefined` después de ejecutar la función de consola es el resultado normal de una IIFE y no evidencia de error. El motivo del error rojo y la recurrencia de las advertencias deben diagnosticarse por separado; no se deben declarar resueltos.
 
 **Próxima tarea recomendada:** inspeccionar el mensaje del error rojo de la consola y, posteriormente, corregir el uso de sombras obsoletas de Three.js con cambios mínimos y pruebas `lint`/`build`, sin alterar la geometría ni comportamiento del brazo 3D. Trabajar solo en la rama `feat/jetson-nano-physical-ai`, sin habilitar PWM, fuente V+ ni bajar OE.
+
+## 24. Paso 9.44: favicon 404 y advertencias WebGL (corrección pendiente de validar, 30-10-2026)
+
+**Diagnóstico con captura real de Chrome DevTools de `http://127.0.0.1:5174/`:** el único error rojo visible es `Failed to load resource: the server responded with a status of 404 (Not Found)`, ruta `:5174/favicon.ico:1`. No corresponde a WebSocket, Python, servos ni cálculo de la posición. La consola además muestra más de 1,300 advertencias repetidas `THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.`.
+
+**Cambios mínimos ya incorporados directamente en rama `feat/jetson-nano-physical-ai`:**
+
+- Se creó `control-center/frontend/public/favicon.svg`, icono vectorial local con la paleta del dashboard.
+- Se añadió a `control-center/frontend/index.html` un enlace HTML explícito `<link rel="icon" type="image/svg+xml" href="/favicon.svg" />`, para que el navegador solicite la ruta válida en lugar de buscar implícitamente `/favicon.ico`.
+- En `control-center/frontend/src/RobotScene.jsx` se definió una configuración constante `SHADOW_SETTINGS = { type: THREE.PCFShadowMap }` y se pasó al `<Canvas>` mediante `shadows={SHADOW_SETTINGS}`. Evita seleccionar `PCFSoftShadowMap`, deprecado desde Three.js r182, y conserva las sombras y toda la geometría existente.
+- No se modificaron el modelo cinemático, las seis articulaciones, límites, backend, PWM, seguridad del monitor ni el protocolo SSH/WebSocket.
+
+**Pendiente de pruebas reales:** en Mac, `git pull --ff-only`, `npm run lint`, `npm run build`, `curl -I http://127.0.0.1:5174/favicon.svg` tras recarga, y Chrome DevTools con consola limpiada y recarga de página para verificar que desaparezcan la petición 404 del favicon y la advertencia de PCFSoftShadowMap. No declarar resuelto hasta recibir la salida/captura.
+
+**Nota:** el `undefined` mostrado tras ejecutar la función de inspección en DevTools es normal; el error 404 era un recurso web faltante. Mantener 8767 como monitor solo lectura y conservar OE alto a 3.3 V y V+ apagada; `main` intacta.
