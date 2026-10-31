@@ -384,3 +384,11 @@ Tras habilitar los niveles de consola, la captura del usuario en 5174 confirma q
 **Próxima prueba:** `git pull --ff-only`, `npm run lint`, `npm run build` en Mac y Chrome DevTools (limpiar y recargar) para confirmar la corrección de WebSocket; el aviso `THREE.Clock` puede persistir hasta que `@react-three/fiber` migre a `THREE.Timer`. No degradar versiones ni mutear warnings sin necesidad. Esta nota no afirma que las advertencias ya estén eliminadas.
 
 Mantener la separación de control físico y monitor, servos apagados, OE alto a 3.3 V, `main` sin cambios.
+
+## 22. Paso 9.48: compilacion de cliente WebSocket verificada (30-10-2026)
+
+La Mac incorporó el cambio de `useRobotSocket.js` mediante fast-forward `45cd2ff..2cf0046`; el usuario compartió `npm run lint` sin errores y `npm run build` satisfactorio con Vite 8.3.5, 571 módulos y tiempo **467 ms**. Los cambios de ciclo de vida WebSocket son válidos para ESLint y la compilación, pero **todavía no se dispone de nueva captura** de consola y reproducción 3D tras la recarga.
+
+**Pendiente:** ejecutar revisión visual/DevTools del puerto 5174 con niveles predeterminados y consola limpia; comprobar que el WebSocket de replay permanece `CONNECTED` sin advertencia de cierre antes de establecerse, y que la Base sigue animándose mientras los controles están deshabilitados. La advertencia de `THREE.Clock` se clasifica por separado como dependencia y no está corregida.
+
+Continuar exclusivamente en simulación/replay, con el PCA9685 en OE alto y servos sin alimentación.
