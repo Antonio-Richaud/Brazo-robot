@@ -1,7 +1,7 @@
 # Estado del proyecto y documento de continuidad — Brazo Robot + Jetson Nano
 
 **Fecha de corte inicial:** 26 de octubre de 2026  
-**Última actualización:** 30 de octubre de 2026 (Jetson: I²C, 26/26 tests y demo; Mac: Python 3.12, backend 7/7 tests, servidor de simulación y frontend lint/build; dashboard visual pendiente)  
+**Última actualización:** 30 de octubre de 2026 (Jetson 36/36 tests y JSONL verificados; Mac 39/39 tests, lint/build correctos, canal SSH validado; reproducción 3D de datos Jetson pendiente)
 **Repositorio:** https://github.com/Antonio-Richaud/Brazo-robot  
 **Rama de trabajo actual:** feat/jetson-nano-physical-ai  
 **Punto de partida del código:** main, commit 8251aa902c04192c4e1d8ed143515d59bfdd7f7a  
@@ -27,7 +27,7 @@ El objetivo es un **sandbox de IA/robótica física**: brazo de seis grados de l
 - Se añadió `jetson/arm_simulation.py` con estado `DISARMED`, `SIM_ARMED` solo matemático, validación de los seis ejes, velocidad máxima por eje y watchdog de simulación. Las 17 pruebas nuevas se ejecutaron en la Jetson junto con las nueve previas (**26/26 OK, 0.013 s**).
 - **No** se ha instalado el runtime completo, conectado la D435i, energizado el brazo desde Jetson ni movido servos.
 
-**Siguiente tarea:** el backend moderno y las dependencias del frontend ya están preparados en la **Mac**, con Python 3.12.13, pruebas 7/7, servidor en `127.0.0.1:8765` (TCP comprobado), lint/build aprobados y commit `999367e` subido. Falta iniciar el frontend Vite y verificar el gemelo 3D y handshake WebSocket en navegador. El simulador separado de seis ejes de la Jetson sigue comprobado (26/26 tests y demo CLI 90°→125°), **sin puente Jetson→Mac**. No habilitar salidas físicas ni conectar potencia a motores. No instalar los requisitos del backend moderno en Python 3.6 de JetPack.
+**Siguiente tarea:** ejecutar el **monitor pasivo `jetson_demo_monitor.py` en Mac**, alimentado con las 13 tramas JSONL validadas obtenidas por SSH desde Jetson. Las pruebas del monitor están confirmadas (39/39 backend Mac, ESLint y build OK), pero falta verificar que abra `127.0.0.1:8767`, reproduzca datos y que la UI en `5174` muestre el movimiento con controles bloqueados. El backend normal en `8765` sigue aislado. No hay streaming físico ni habilitación del PCA9685. Mantener `OE` alto, fuente de servos apagada y `main` intacta.
 
 ## 2. Objetivo y alcance funcional
 
@@ -425,3 +425,19 @@ El usuario verificó sobre la Jetson Nano 2GB: rama `feat/jetson-nano-physical-a
 **Pendientes de confirmar antes de abrir el monitor:** 39 tests backend Mac y validaciones `npm run lint` / `npm run build`. Después ejecutar SSH→monitor pasivo e iniciar la segunda instancia de frontend contra 8767 para comprobar animación de reproducción.
 
 **No confundir:** reproducir frames Jetson después de haberlos recibido no implica streaming continuo del estado Jetson, feedback angular medido ni seguridad funcional del brazo físico. El modo real de control por hardware se mantiene fuera de esta prueba; el OE permanece alto (3.3 V), V+ apagada, `main` intacta.
+
+## 19. Paso 9.39 validado y arranque 9.40 pendiente (30-10-2026)
+
+**La Mac sincronizó la rama hasta `87ddb8a` y el usuario proporcionó salidas reales de validación:**
+
+- `control-center/backend/.venv/bin/python -m unittest discover -s tests -v` desde `control-center/backend`: **39/39 pruebas aprobadas en 0.030 s** (`OK`).
+- `npm run lint` desde `control-center/frontend`: finalizó sin errores.
+- `npm run build`: Vite **8.3.5**, **571 módulos**, compilación terminada correctamente en **539 ms**. El artefacto de escena 3D sigue grande, sin fallo de compilación.
+- `git status -sb`: rama `feat/jetson-nano-physical-ai` sincronizada con su remoto, sin modificaciones locales.
+- Estas verificaciones incluyen 10 pruebas de `jetson_demo_monitor.py` (sin abrir puertos), las 22 del validador pasivo y 7 anteriores. **No** prueban aún la apertura del monitor en puerto 8767 ni la visualización de tramas remotas en el navegador.
+
+**Siguiente paso 9.40 — arranque controlado del monitor:** desde Mac, abrir una terminal independiente y ejecutar la tubería `ssh -T antonio@jetson-nano.local 'cd "$HOME/robot-lab/Brazo-robot" && python3 jetson/telemetry_stream.py --demo' | control-center/backend/.venv/bin/python control-center/backend/jetson_demo_monitor.py --stdin-demo` con `set -o pipefail`. El monitor debe recibir y **validar las 13 tramas completas antes de abrir** `ws://127.0.0.1:8767`. Se espera el mensaje `JETSON_REPLAY_MONITOR_READY`, todavía no confirmado. El proceso permanece activo hasta `Ctrl+C`.
+
+**Después y solo cuando 9.40 sea confirmado:** iniciar una segunda instancia de Vite, en `127.0.0.1:5174`, configurando `VITE_ROBOT_WS_URL=ws://127.0.0.1:8767` para comprobar el gemelo 3D y los botones/sliders bloqueados. La instancia normal en 5173 usa el backend local en 8765.
+
+**Aclaración fundamental:** esta fase **reproduce en bucle** 13 cuadros de simulación generados en Jetson y transmitidos una sola vez por SSH; no es una transmisión continua del estado real de la Jetson ni controla servos. `OE` alto (3.3 V), V+ apagada y `main` sin alterar.
