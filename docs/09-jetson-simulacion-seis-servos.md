@@ -353,3 +353,13 @@ Tras cerrar la prueba de controles bloqueados, una captura de DevTools confirmó
 **Siguiente validación única:** actualizar la rama en Mac y ejecutar `npm run lint` + `npm run build`; recargar `http://127.0.0.1:5174/` y revisar en Chrome si el icono SVG responde con HTTP 200 y dejan de aparecer el 404 y las advertencias PCFSoftShadowMap. El dashboard debe seguir recibiendo `runtime_mode=jetson_replay` con controles bloqueados. No asumir éxito antes de la salida del usuario.
 
 Las pruebas siguen siendo exclusivamente de software y replay matemático; no energizar motores ni modificar la rama `main`.
+
+## 19. Paso 9.45: recompilación y favicon SVG verificados (30-10-2026)
+
+La salida compartida por el usuario confirma que el checkout de Mac integró el cambio de favicon y sombras hasta commit `45cd2ff` por fast-forward. `npm run lint` terminó sin errores, `npm run build` produjo **571 módulos con Vite 8.3.5** en **539 ms**, y la petición `curl` a `http://127.0.0.1:5174/favicon.svg` devolvió **`FAVICON_HTTP_200`**.
+
+El error original del favicon se ha corregido en la entrega del recurso SVG; **sigue pendiente verificar en la consola del navegador tras recarga limpia** que no se solicite `/favicon.ico` y no aparezca el aviso deprecado `THREE.WebGLShadowMap: PCFSoftShadowMap ...`. Una compilación correcta no prueba ausencia de advertencias runtime.
+
+**Próxima prueba:** borrar la consola DevTools, recargar el segundo dashboard `5174` con el monitor en `8767`, observar varios segundos el movimiento 90°→125°→90° y los controles bloqueados, y comprobar ausencia de errores/advertencias nuevos. No se requieren más cambios de código antes de recibir esa evidencia.
+
+Mantener `main` sin cambios, potencia de servomotores apagada y OE conectado a 3.3 V.
