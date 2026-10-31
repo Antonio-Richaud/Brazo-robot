@@ -225,13 +225,28 @@ Resultado literal: `RESULTADO: HOME VERIFICADO`. **Seis de seis ejes correctos, 
 
 El cliente SSH emitio una advertencia por ausencia de intercambio de claves poscuantico en el servidor antiguo, pero la sesion se establecio correctamente. No modificar JetPack ni el servidor SSH sin revision previa.
 
-**Paso 9.37 preparado en GitHub, aun NO probado en Jetson:**
+**Paso 9.37 ejecutado y comprobado en la Jetson real (30-10-2026):**
 
 - `jetson/telemetry_stream.py` es un emisor Python 3.6 de **13 tramas JSONL** exclusivamente por stdout, al ejecutar `--demo` de forma explicita. Simula en RAM la Base 90->125->90 grados, parte de `DISARMED` y termina en `DISARMED`. No lee stdin, no abre red ni accede a I2C, GPIO, serial o PWM.
-- `jetson/tests/test_telemetry_stream.py` agrega **10 pruebas unitarias** a las 26 existentes. No afirmar que son 36/36 satisfactorias hasta obtener la salida de la Jetson.
+- `jetson/tests/test_telemetry_stream.py` agrega **10 pruebas unitarias** a las 26 existentes. **La Jetson aprobó las 36/36 pruebas en 0.064 s**, según salida real de terminal.
 - Cada trama publica `schema=brazo.jetson.sim.telemetry`, `schema_version=1`, `source=jetson_simulation`, `sequence`, `state`, `mode=simulation_only`, `fault_reason`, `hardware_enabled=false` y `servos` con seis articulaciones no medidas fisicamente.
 - El estado `SIM_ARMED` dentro de esas tramas es un estado exclusivamente matematico; no habilita la señal OE ni ningun servo.
 
-**Pendiente:** sincronizar y ejecutar las pruebas y el flujo JSONL en la Jetson. Todavia no existe puente entre esta fuente Jetson y el backend/WebSocket/React en Mac. El siguiente desarrollo debe validar esquemas y separar el modo monitor remoto de los controles de movimiento.
+**Validación real:** la Jetson actualizó su rama por `git pull --ff-only` hasta `2aac693`, ejecutó 36 pruebas con resultado `OK`, emitió **13 tramas JSONL** y superó la prueba de stdout: `Tramas recibidas: 13`, `Base inicial: 90.0`, `Base maxima: 125.0`, `Base final: 90.0`, `JETSON_TELEMETRY_JSONL_OK`. Todavía no existe puente hacia el backend/WebSocket/React en Mac.
 
 Conservar OE alto a 3.3 V, potencia externa de servos apagada y `main` intacta.
+
+## 11. Paso 9.38: receptor pasivo de telemetria en la Mac (preparado para probar)
+
+**Código incorporado en GitHub, sin ejecución real todavía:**
+
+- [control-center/backend/jetson_telemetry_reader.py](../control-center/backend/jetson_telemetry_reader.py): validador pasivo Python 3.12 que solo consume JSONL desde `stdin` con `--stdin-demo`; **no invoca SSH**, no usa sockets/WebSocket/serial, no escribe estado del backend ni puede enviar comandos al brazo.
+- [control-center/backend/tests/test_jetson_telemetry_reader.py](../control-center/backend/tests/test_jetson_telemetry_reader.py): **22 pruebas nuevas** de contrato y rechazo de datos maliciosos o corruptos, usando el emisor matematico existente con reloj simulado. **Total esperado de tests backend Mac: 29 (7 existentes + 22 nuevos), aun no verificado por ejecucion real.**
+- Valida esquema y versión exactos, fuente autorizada, secuencia consecutiva `0..12`, modo matemático `simulation_only`, `hardware_enabled=false`, seis IDs/canales/límites conocidos, `measured=false`, ángulos finitos y dentro de límites, estado inicial/final `DISARMED`, trayectoria de Base y retorno a Home.
+- **Criterio de fallo cerrado:** si el flujo SSH falla, el origen cambia, los datos exceden tamaño, hay tramas incompletas/adicionales o posiciones inválidas, el receptor termina con error sin publicar resultados como válidos.
+- En la prueba prevista, el operador establecerá la sesión **SSH autenticada desde su Mac** y pasará stdout al validador mediante `|` con `set -o pipefail`. La autenticación puede pedir contraseña; las advertencias SSH van a stderr.
+- **Importante:** un JSONL válido no es prueba de movimiento físico; tampoco se integra todavía al dashboard. El backend WebSocket actual continúa en `--mode simulation` y el frontend consume el estado simulado local, no la Jetson.
+
+**Próximo test en Mac:** sincronizar rama; ejecutar `.venv/bin/python -m unittest discover -s tests -v` desde `control-center/backend`; después ejecutar el flujo remoto `ssh ... 'cd ... && python3 jetson/telemetry_stream.py --demo' | control-center/backend/.venv/bin/python control-center/backend/jetson_telemetry_reader.py --stdin-demo`, con `set -o pipefail`. Resultado esperado `MAC_JETSON_TELEMETRY_READONLY_OK`, sujeto a comprobación real.
+
+No activar la fuente de los servos; conservar OE alto a 3.3 V y `main` intacta.
