@@ -393,3 +393,13 @@ Abrir la URL local que imprima Vite (habitualmente `http://127.0.0.1:5173/`), co
 **Siguiente paso 9.36:** confirmar que la Mac puede ejecutar por SSH una lectura JSON del simulador Python 3.6 existente en la Jetson, sin modificar archivos, instalar paquetes, abrir un puerto nuevo, acceder a I²C ni encender servomotores. Se pretende un transporte de telemetría **de lectura desde Mac mediante SSH existente**, no un servidor sin autenticación en Jetson. En una fase posterior diseñar un modo separado de telemetría remota que rechace comandos de movimiento; no reutilizar `simulation` como si fueran datos de Jetson ni aceptar comandos remotos hacia PWM.
 
 Permanecen pendientes validación de conectividad SSH actual, implementación del puente, manejo de desconexiones, pruebas de aislamiento, watchdog independiente de hardware, corte físico de alimentación y calibración de servos. `OE` debe mantenerse alto a 3.3 V y V+ de los servos sin alimentación. Trabajar solo en `feat/jetson-nano-physical-ai`; `main` queda intacta.
+
+## 16. SSH y emisor de telemetria JSONL de Jetson (30-10-2026)
+
+**Paso 9.36, confirmado:** SSH Mac->Jetson con autenticacion por contrasena; Python 3.6.9; `ArmSimulation().snapshot()` enviado a Mac en JSON, seis ejes, `DISARMED`, `hardware_enabled=false`, `measured=false`. La validacion concluyo `JETSON_SIMULATION_READONLY_OK`. La advertencia SSH poscuantica no impidio la sesion.
+
+**Paso 9.37, implementado en rama pero pendiente de ejecutar:** nuevo `jetson/telemetry_stream.py` para emitir una demostracion finita de 13 tramas JSONL en Python 3.6, solo por stdout; la Base realiza una trayectoria puramente matematica 90->125->90 y vuelve a `DISARMED`. Nuevo `jetson/tests/test_telemetry_stream.py` con 10 pruebas adicionales. Hasta verificar en Jetson, el total esperado es 36, no un resultado comprobado.
+
+**Separacion de seguridad:** SSH es el unico transporte remoto usado hasta ahora; no se abren servidores TCP en Jetson, ni existen comandos de control remoto de motores. El frontend sigue funcionando con simulacion local de Mac, **no** alimentado por datos Jetson. Para integrarlo se requiere validador de esquema, modo de monitor remoto solo lectura con controles deshabilitados y manejo de desconexion.
+
+**Proxima accion:** actualizar la rama en la Jetson y ejecutar pruebas + demostracion JSONL. Mantener OE alto, alimentacion V+ de servos apagada y `main` sin cambios.
