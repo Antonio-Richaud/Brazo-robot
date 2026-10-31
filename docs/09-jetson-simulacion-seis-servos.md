@@ -363,3 +363,11 @@ El error original del favicon se ha corregido en la entrega del recurso SVG; **s
 **Próxima prueba:** borrar la consola DevTools, recargar el segundo dashboard `5174` con el monitor en `8767`, observar varios segundos el movimiento 90°→125°→90° y los controles bloqueados, y comprobar ausencia de errores/advertencias nuevos. No se requieren más cambios de código antes de recibir esa evidencia.
 
 Mantener `main` sin cambios, potencia de servomotores apagada y OE conectado a 3.3 V.
+
+## 20. Paso 9.46: inspección visual de consola con filtro de errores
+
+El usuario informó **«Ya está limpio»** y compartió captura del segundo dashboard (puerto 5174), con escena Three.js visible y enlace `CONNECTED` en modo `MONITOR`. La pestaña Console no presenta entradas rojas y el error previo de `/favicon.ico` ya no aparece; la petición al nuevo SVG había sido validada con `FAVICON_HTTP_200`.
+
+**Precisión de la prueba:** el selector de Chrome está en **`Solo Errores`**, no en todos los niveles. El contador del navegador muestra **2 advertencias** y DevTools indica **5 mensajes ocultos**. Por ello, la desaparición de las advertencias recurrentes `PCFSoftShadowMap` **aún debe comprobarse** en consola sin filtro; no marcar el diagnóstico de warnings como concluido.
+
+**Paso siguiente:** seleccionar `Niveles predeterminados` / todos los niveles, limpiar consola, recargar y observar las advertencias nuevas. Confirmar movimiento del gemelo y modo monitor sin alterar datos de Jetson ni servos. Mantener fuente física apagada y OE alto.
