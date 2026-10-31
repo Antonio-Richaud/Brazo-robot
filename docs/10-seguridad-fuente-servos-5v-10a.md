@@ -265,3 +265,26 @@ Antes de decidir el GPIO concreto, **identificar el modelo/revision del modulo P
 **Referencias tecnicas:**
 - NXP PCA9685, seccion 7.4 de ficha tecnica oficial: https://www.nxp.com/docs/en/data-sheet/PCA9685.pdf
 - NVIDIA Jetson.GPIO API y pin numeration BOARD: https://github.com/NVIDIA/jetson-gpio
+
+
+## 15. Paso 10.8: placa PCA9685 identificada por fotografia frontal (31 de octubre de 2026)
+
+El usuario compartio una fotografia cercana del modulo montado. **Inspeccion visual**: placa PCB azul tipo Adafruit PCA9685 16-channel / 12-bit PWM Servo Driver; se observan serigrafias `VCC`, `SDA`, `SCL`, `OE`, `GND`, un banco de conectores de servos con cables instalados, bornera de dos tornillos de potencia, un condensador electrolitico grande y LED indicador `POWER` encendido. Se observa una serigrafia `adafruit`, pero **no se puede confirmar si el modulo es original o una copia solo por una imagen frontal**. El lado posterior/trazado OE y la red de resistencias no son visibles con suficiente detalle para certificar sus valores.
+
+**Distincion electrica importante:** el LED `POWER` no demuestra que la linea OE sea segura ni que la señal PWM esté habilitada; es solo un indicador de alimentacion del modulo. Las mediciones previas del usuario de V+ ~5 V y OE ~3.3 V y lectura I2C `FULL OFF 16/16` permanecen como registros separados.
+
+**Datos corroborados con fuentes tecnicas:**
+
+- Adafruit documenta para el breakout de 16 canales OE activo BAJO (LOW habilita las salidas / HIGH deshabilita), con **pull-down por defecto** en su propia version; por lo tanto, si se retira el cable que eleva OE a 3.3 V, NO debe asumirse que OE seguira alto ni que las salidas permaneceran inhibidas. Las copias pueden diferir y su topologia exacta no ha sido verificada. Fuente: https://learn.adafruit.com/16-channel-pwm-servo-driver/pinouts
+- NXP especifica que OE activo BAJO habilita salidas de acuerdo con los registros, y HIGH les aplica el estado OUTNE de MODE2. Fuente: https://www.nxp.com/products/power-drivers/lighting-driver-and-controller-ics/led-drivers/16-channel-12-bit-pwm-fm-plus-ic-bus-led-driver%3APCA9685
+- El pin fisico 17 del header J6 de Jetson es **3.3 V fijo**, no GPIO programable. Esta conectado a OE segun cableado de la bitacora. **Nunca conectar un GPIO de salida que pueda pasar a LOW en paralelo con esta conexion directa**.
+
+### Conclusion y siguientes acciones (SIN ENERGIZAR MOVIMIENTO)
+
+1. El modulo es compatible visualmente con el PCA9685 de 16 canales que la Jetson detecto en direccion I2C 0x40; la foto no acredita el origen comercial exacto.
+2. **No retirar ni mover el cable de OE de 3.3 V ahora**; no unir OE directamente a GND mientras esté unido al pin 17. Si en el futuro se reconfigura este cableado, hacerlo con **Jetson y fuente de servos desconectadas y sin energia residual**, despues de revisar el esquema completo.
+3. Preparar una interfaz electronica **de bloqueo por defecto en HIGH** a OE, tomando en cuenta cualquier pull-down montado en el PCB. El permiso para bajar OE a LOW debe depender de una etapa aislada de salida tipo colector abierto/open-drain, con interlock y watchdog **externo** o mecanismo equivalente seguro ante bloqueo de Linux. No asignar componentes ni GPIO concreto hasta conocer correctamente carga y topologia de OE.
+4. Mantener FULL OFF en los 16 canales de momento. Para el ensayo posterior de garra montada, el software debe autorizar como maximo un canal con verificacion de todos los demas en FULL OFF, sin Home automatico ni velocidad brusca, con calibracion mecanica previa y paro fisico accesible.
+5. **Proxima tarea util sin cables:** disenar y probar en la rama el contrato y las pruebas de un supervisor de seguridad en modo virtual (DISARMED al iniciar, autorizacion explicita, timeout, fault latch, un canal permitido, resto FULL OFF), sin ninguna llamada a hardware; luego concretar materiales y probar la interfaz con el STOP accionado.
+
+**No se modifico ni se habilito ningun motor a raiz de esta fotografia.**
