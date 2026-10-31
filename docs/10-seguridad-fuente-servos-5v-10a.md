@@ -146,3 +146,15 @@ En la prueba anterior la Jetson tambien confirmo por I2C `FULL OFF 16/16`. Por t
 **Siguiente pregunta unica al usuario:** ¿ya hay un interruptor fisico o paro de emergencia que corte la potencia V+ de los servos de inmediato, sin depender del software ni de que la Jetson responda? Si no, disenar y comprobarlo antes de ensayar movimiento. No confundir un boton de control WebSocket/Home con paro fisico.
 
 **Importante:** los valores en V+ y OE no sustituyen validacion de PE de la fuente AC, protecciones contra cortocircuito, calibre de conductores ni comprobacion bajo carga. No tocar bornes ni manipular conectores energizados.
+
+## 10. Paso 10.4: corte fisico reportado, prueba funcional pendiente (31 de octubre de 2026)
+
+El usuario confirmo que **ya tiene instalado un interruptor fisico o paro de emergencia para cortar la alimentacion de 5 V de los servomotores independientemente de la Jetson**. Declaracion textual: «Sí ya lo tengo». Se reconoce como **instalacion reportada**, NO como prueba de funcionamiento, capacidad nominal DC, recorrido efectivo de contactos, tipo de conexion o verificacion de seguridad.
+
+Condiciones antes de probar: mantener el PCA9685 con FULL OFF 16/16 segun la ultima lectura y OE conectado a nivel alto 3.3 V; no mover servos ni enviar PWM. Apoyar el brazo y asegurar la carga porque quitar potencia puede liberar los ejes. Mantener manos lejos de articulaciones y de bornes de corriente alterna.
+
+**Siguiente verificacion funcional de bajo voltaje (sin cambiar cables):** observar con multimetro el voltaje en el **lado de la alimentacion DC que queda despues del interruptor/paro hacia los servos**. Si el corte esta antes de la entrada V+ del PCA9685, el punto de medida es V+ respecto al GND de potencia de la placa. Accionar el paro y comprobar que en ese lado de carga la tension desciende a aproximadamente 0 V despues de descargar condensadores, mientras la Jetson permanece operativa. Si el corte esta despues de V+ del PCA9685, no usar la medicion V+ como prueba; identificar el lado de carga efectivo sin tocar cableado energizado. No confundir el contacto NA/NC, ni dar por probado el paro solo por accionarlo.
+
+**Criterio para avanzar:** comprobar fisicamente que el paro elimina la potencia de servos y no interrumpe la alimentacion/control de la Jetson; verificacion del rearme solo en fase posterior con OE alto y PWM deshabilitado. Registrar medida y tiempo aproximado de caida. Si hay giro o caida espontanea, calor, chispas, olor o cualquier duda de cableado, no continuar y solicitar revision profesional. Se requiere ademas validar rating de switch/corte DC y protecciones antes de movimientos.
+
+**Estado:** esperar resultado de la prueba de corte. No existe codigo nuevo ni movimientos permitidos. El documento conserva el historial de los apartados 1–9 sin reinterpretarlos como el cableado actual.
