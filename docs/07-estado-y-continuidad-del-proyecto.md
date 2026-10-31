@@ -1,7 +1,7 @@
 # Estado del proyecto y documento de continuidad — Brazo Robot + Jetson Nano
 
 **Fecha de corte inicial:** 26 de octubre de 2026  
-**Última actualización:** 30 de octubre de 2026 (PCA9685/I²C, `status` y 9/9 pruebas unitarias verificados en Jetson)  
+**Última actualización:** 30 de octubre de 2026 (I²C, `status`, `disable-all` y 9/9 pruebas unitarias verificados en Jetson)  
 **Repositorio:** https://github.com/Antonio-Richaud/Brazo-robot  
 **Rama de trabajo actual:** feat/jetson-nano-physical-ai  
 **Punto de partida del código:** main, commit 8251aa902c04192c4e1d8ed143515d59bfdd7f7a  
@@ -23,10 +23,10 @@ El objetivo es un **sandbox de IA/robótica física**: brazo de seis grados de l
 - Se instaló pip/venv de Python 3.6 y se creó un entorno virtual independiente para usar las bibliotecas NVIDIA.
 - Se clonó el repositorio y se seleccionó una rama nueva específica de Jetson.
 - Se conectó el PCA9685 a la Jetson por J6 e I²C bus 1: dirección 0x40 detectada, MODE1/MODE2/PRE_SCALE validados, frecuencia nominal 50 Hz preparada y salidas FULL OFF confirmadas en canales 0 y 15. OE está conectado físicamente a 3.3 V según la comprobación de cableado comunicada por el usuario.
-- Se agregó jetson/pca9685_safe.py (diagnóstico solo lectura y comando exclusivo FULL OFF, sin orden de armado/movimiento); `status` fue probado con el PCA9685 real y las **nueve pruebas simuladas se ejecutaron en la Jetson (9/9, OK, 0.003 s)**. El comando `disable-all` aún no se ha probado en el hardware real.
+- Se agregó jetson/pca9685_safe.py (diagnóstico solo lectura y comando exclusivo FULL OFF, sin orden de armado/movimiento); `status` fue probado con el PCA9685 real y las **nueve pruebas simuladas se ejecutaron en la Jetson (9/9, OK, 0.003 s)**. El comando `disable-all` se ejecutó con éxito sobre el PCA9685 real (FULL OFF 16/16).
 - **No** se ha instalado el runtime completo, conectado la D435i, energizado el brazo desde Jetson ni movido servos.
 
-**Primera tarea de la siguiente sesión:** `status` ya validado en hardware (16/16 FULL OFF) y nueve pruebas unitarias ejecutadas en Python 3.6 (9/9, OK). Siguiente prueba controlada: ejecutar `python3 jetson/pca9685_safe.py disable-all` manteniendo OE en alto y la alimentación de servos apagada, comprobar resultado y seguir con el diseño del adaptador seguro. No instalar requirements.txt sobre Python 3.6.
+**Primera tarea de la siguiente sesión:** `status` ya validado en hardware (16/16 FULL OFF) y nueve pruebas unitarias ejecutadas en Python 3.6 (9/9, OK). La siguiente etapa es diseñar y probar la simulación independiente del brazo de seis ejes, sin habilitar salidas físicas ni conectar la alimentación de los motores. No instalar requirements.txt sobre Python 3.6.
 
 ## 2. Objetivo y alcance funcional
 
@@ -278,7 +278,7 @@ PR Raspberry Pi 4: https://github.com/Antonio-Richaud/Brazo-robot/pull/4
 - [x] Incorporar utilidad inicial de diagnóstico y FULL OFF, sin API de armado (jetson/pca9685_safe.py; pruebas unitarias simuladas).
 - [x] Validar `python3 jetson/pca9685_safe.py status` sobre la Jetson real: MODE1=0x01, MODE2=0x04, PRE_SCALE=0x79, FULL OFF 16/16.
 - [x] Ejecutar las nueve pruebas unitarias con Python 3.6 en la Jetson real (9/9, `OK`, 0.003 s).
-- [ ] Validar en el hardware real la acción `disable-all` (solo desactivación, sin habilitar salidas).
+- [x] Validar en hardware real la acción `disable-all`: escritura global aceptada y 16/16 canales FULL OFF.
 - [ ] Implementar futuro adaptador Jetson de control, con armado explícito y PWM deshabilitado por defecto.
 - [ ] Añadir interruptor de corte físico de potencia y protocolo de arranque seguro.
 - [ ] Probar cada servo individualmente con fuente externa y límites calibrados.
