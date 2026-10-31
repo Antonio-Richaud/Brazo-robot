@@ -554,3 +554,13 @@ El usuario confirmó mediante salida real de la Mac que el cambio de `control-ce
 **Próximo paso 9.50 recomendado:** comprobar recuperación ante pérdida de enlace del monitor de reproducción: detener con `Ctrl+C` solo el proceso del monitor `:8767`, observar que la UI pasa de `CONNECTED` a `reconnecting` y mantiene sus controles deshabilitados. Verificar la recuperación tras reactivar el monitor en un paso posterior, sin enviar órdenes ni habilitar hardware.
 
 Conservar OE alto a 3.3 V, servos sin alimentación externa, monitor matemático solo lectura y rama `main` intacta.
+
+## 30. Paso 9.50: desconexion del monitor detectada; controles por verificar (30-10-2026)
+
+**Evidencia visual enviada por el usuario tras detener el monitor de replay en Mac (`Ctrl+C`, puerto 8767):** la pagina React en `http://127.0.0.1:5174` sigue abierta; su cabecera cambia de `CONNECTED` a **`RECONNECTING`** (indicador ambar), el gemelo 3D permanece dibujado con la ultima pose conocida y DevTools registra reintentos WebSocket hacia `ws://127.0.0.1:8767/` fallidos con **`net::ERR_CONNECTION_REFUSED`**. Esto es esperable porque el servidor del monitor fue apagado deliberadamente; no demuestra un fallo de la Jetson ni de la UI.
+
+**Lo efectivamente comprobado:** deteccion de desconexion, estado visual `RECONNECTING`, persistencia de la pagina y reintentos de conexion. **Aun no comprobado con la captura:** el atributo `disabled` de los cuatro botones Home/Saludo/Rutina/Cancelar y seis sliders durante la perdida de enlace; los controles no aparecen en el area capturada. `App.jsx` deberia deshabilitarlos por `!socketConnected || jetsonReplay`, pero hay que verificarlo en DOM antes de cerrar la prueba de seguridad de interfaz. Una imagen estatica tampoco demuestra por si sola que la animacion haya dejado de actualizarse.
+
+**Siguiente paso 9.50b:** con el monitor 8767 todavia apagado, ejecutar en DevTools de la misma pagina una inspeccion de `disabled` en `document.querySelectorAll('.action-grid button')` y `document.querySelectorAll('.servo-list input[type="range"]')`; exigir 4/4 y 6/6 y que el encabezado siga en `RECONNECTING`. No enviar comandos WebSocket. **Solo entonces** reactivar el monitor en una prueba separada de recuperacion automatica.
+
+Nota: la advertencia no bloqueante `THREE.Clock` continua visible en DevTools; no se debe confundir con los errores esperados `ERR_CONNECTION_REFUSED`. Fuente de motores apagada, OE alto 3.3 V, `main` intacta.
