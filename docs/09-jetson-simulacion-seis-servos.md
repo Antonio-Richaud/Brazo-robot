@@ -174,6 +174,6 @@ Se debe mantener **OE a 3.3 V, V+ de los servos desconectado y `main` intacta**.
 - Validación frontend: `npm run lint` OK, `npm run build` OK (Vite 8.3.5, 571 módulos, 903 ms), `git diff --check` OK.
 - Cambios confirmados y publicados en GitHub: commit **`999367e`** (`control-center/frontend/package-lock.json` únicamente), rama Jetson; `main` sin modificar. Cualquier commit de documentación posterior exige `git pull --ff-only` en Mac antes de continuar.
 
-**Siguiente comprobación:** iniciar Vite en la Mac con `npm run dev -- --host 127.0.0.1` desde `control-center/frontend` y abrir `http://127.0.0.1:5173/`, manteniendo activo el backend en simulación. Verificar en navegador render 3D, conexión WebSocket y estado de seis servos; **no afirmar que se verificó hasta recibir resultados reales**.
+**Paso 9.31 confirmado por el usuario:** después de levantar Vite en la Mac, `http://127.0.0.1:5173/` **abre correctamente y el dashboard se visualiza bien**. Esta validación es exclusivamente visual; **no se ha verificado todavía el handshake WebSocket, la recepción de telemetría ni el movimiento simulado de seis ejes desde la UI**. Próxima verificación: cliente Python 3.12 de WebSocket de **solo lectura**, conectado únicamente a `ws://127.0.0.1:8765`, comprobar `runtime_mode: simulation`, seis servos y `measured: false`, sin enviar comandos.
 
 Esta preparación del dashboard es **independiente** del simulador Python 3.6 de la Jetson; todavía **no existe puente Jetson → Mac**. Mantener **OE alto a 3.3 V, V+ de servos apagado y ninguna habilitación física**.
