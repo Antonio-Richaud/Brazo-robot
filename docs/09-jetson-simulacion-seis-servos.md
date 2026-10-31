@@ -159,3 +159,21 @@ La demostración anterior es un proceso local y aislado en Jetson: todavía **no
 4. Integrar gradualmente y añadir pruebas de compatibilidad del estado (IDs, nombres, límites, `measured: false`), sin tocar la rutina física ni arrancar `Home`.
 
 Se debe mantener **OE a 3.3 V, V+ de los servos desconectado y `main` intacta**. La simulación no es un movimiento físico ni valida calibración mecánica.
+
+## 7. Preparación del dashboard en Mac (30-10-2026; pasos 9.18 a 9.30)
+
+**Confirmado mediante salidas de terminal del usuario en la MacBook Air:**
+
+- Python predeterminado 3.14.7, Python 3.12.13 disponible; Node.js 24.18.0 y npm 11.16.0.
+- Repositorio Mac `~/Documents/GitHub/Brazo-robot`: rama `feat/jetson-nano-physical-ai` sincronizada, sin cambios locales previos.
+- Backend moderno: entorno virtual `control-center/backend/.venv` creado con Python 3.12.13; instalados `pygame==2.6.1`, `pyserial==3.5` y `websockets==16.0`; `pip check` sin incompatibilidades.
+- Pruebas del backend Mac: **7/7** aprobadas (`python -m unittest discover -s tests -v`).
+- Servidor Mac iniciado explícitamente con `ROBOT_WS_HOST=127.0.0.1 python main.py --mode simulation --perception off --no-joystick`. Proceso Python escuchando en `127.0.0.1:8765`, prueba TCP con `nc` exitosa. **Aún no se ha verificado el handshake/intercambio WebSocket ni el dashboard visual**.
+- Frontend: `npm ci` exitoso (208 paquetes), pero audit inicial encontró 17 vulnerabilidades (10 moderadas, 7 altas). Se hizo `npm audit fix --dry-run` antes de `npm audit fix` **sin `--force`**. npm actualizó 30 paquetes y agregó uno.
+- Auditoría posterior: **0 vulnerabilidades en dependencias de producción** (`npm audit --omit=dev`) y **6 moderadas en desarrollo** vinculadas con `minimatch`/ESLint, reportadas sin fix automático. npm advierte que ESLint 9.39.5 ya no tiene soporte; su revisión queda pendiente, sin forzar cambios.
+- Validación frontend: `npm run lint` OK, `npm run build` OK (Vite 8.3.5, 571 módulos, 903 ms), `git diff --check` OK.
+- Cambios confirmados y publicados en GitHub: commit **`999367e`** (`control-center/frontend/package-lock.json` únicamente), rama Jetson; `main` sin modificar. Cualquier commit de documentación posterior exige `git pull --ff-only` en Mac antes de continuar.
+
+**Siguiente comprobación:** iniciar Vite en la Mac con `npm run dev -- --host 127.0.0.1` desde `control-center/frontend` y abrir `http://127.0.0.1:5173/`, manteniendo activo el backend en simulación. Verificar en navegador render 3D, conexión WebSocket y estado de seis servos; **no afirmar que se verificó hasta recibir resultados reales**.
+
+Esta preparación del dashboard es **independiente** del simulador Python 3.6 de la Jetson; todavía **no existe puente Jetson → Mac**. Mantener **OE alto a 3.3 V, V+ de servos apagado y ninguna habilitación física**.
