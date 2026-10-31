@@ -415,3 +415,13 @@ El usuario verificó sobre la Jetson Nano 2GB: rama `feat/jetson-nano-physical-a
 - La consola Mac abrirá el transporte SSH autenticado **de forma externa** y pasará stdout al validador con `|` y `set -o pipefail`. Ningún servicio nuevo en Jetson. Backend WebSocket y dashboard Mac **todavía no consumen** estas tramas.
 
 **Próxima acción verificada por el usuario:** sincronizar la rama en la Mac, ejecutar pruebas del backend y después el flujo `ssh ... python3 jetson/telemetry_stream.py --demo | python jetson_telemetry_reader.py --stdin-demo`. Esperado `MAC_JETSON_TELEMETRY_READONLY_OK`, todavía **no ejecutado**. Mantener `main` intacta, OE alto 3.3 V y V+ sin energizar.
+
+## 18. Paso 9.38 verificado y replay Jetson 9.39 (30-10-2026)
+
+**Mac: 29/29 tests OK (0.015 s)**. Flujo real SSH `Jetson → Mac` validado: `source=jetson_simulation`, esquema v1, 13 tramas de Base 90→125→90, `DISARMED` final, `hardware_enabled=false`, `measured=false`, salida `MAC_JETSON_TELEMETRY_READONLY_OK`. Se trata exclusivamente de la demo matemática, no de lectura física o telemetría en vivo.
+
+**Paso 9.39 desarrollado en GitHub, sin pruebas de ejecución todavía:** nuevo `control-center/backend/jetson_demo_monitor.py` que recibe JSONL desde stdin, lo valida íntegramente y reproduce los 13 estados con WebSocket **solo en `127.0.0.1:8767`**, separado del backend habitual en 8765. No abre SSH ni conecta serial, I²C, GPIO o PWM. El WebSocket tiene `command_handler=None` y publica `runtime_mode=jetson_replay` / `mode=monitor`. El frontend `App.jsx` etiqueta la reproducción y deshabilita Home, Saludo, Rutina, Cancelar y sliders mientras el modo esté activo. Se añadieron 10 tests en `control-center/backend/tests/test_jetson_demo_monitor.py`.
+
+**Pendientes de confirmar antes de abrir el monitor:** 39 tests backend Mac y validaciones `npm run lint` / `npm run build`. Después ejecutar SSH→monitor pasivo e iniciar la segunda instancia de frontend contra 8767 para comprobar animación de reproducción.
+
+**No confundir:** reproducir frames Jetson después de haberlos recibido no implica streaming continuo del estado Jetson, feedback angular medido ni seguridad funcional del brazo físico. El modo real de control por hardware se mantiene fuera de esta prueba; el OE permanece alto (3.3 V), V+ apagada, `main` intacta.
