@@ -312,3 +312,24 @@ No interpretar este replay de una demo finita como telemetría continua ni medic
 **Siguiente verificación 9.42:** recibir estados WebSocket de `ws://127.0.0.1:8767` desde un cliente Mac **solo lectura** durante varios segundos; confirmar `runtime_mode=jetson_replay`, `mode=monitor`, rango Base `90..125°`, seis servos `measured=false` y fuente de datos simulada. Aclarar aparte que Home/Saludo/Rutina/Cancelar/sliders realmente aparecen deshabilitados; la confirmación visual genérica no acredita cada control.
 
 El replay es de una demo almacenada de 13 tramas, no streaming de sensores ni una lectura física. Mantener el monitor abierto, OE alto a 3.3 V, servos sin alimentación externa y `main` sin modificaciones.
+
+## 16. Paso 9.42: rango 90-125 confirmado por WebSocket (30-10-2026)
+
+El usuario ejecutó en la Mac un cliente Python de **solo recepción** contra `ws://127.0.0.1:8767` durante siete segundos. Recibió **27 estados** del monitor y confirmó las aserciones de `runtime_mode=jetson_replay`, `mode=monitor`, seis articulaciones y `measured=false` en todos los ejes.
+
+**Salida comprobada:**
+
+```text
+Lecturas recibidas: 27
+Ángulos observados: [90.0, 97.0, 104.0, 111.0, 118.0, 125.0]
+Mínimo: 90.0
+Máximo: 125.0
+Objetivos: [90.0, 125.0]
+REPLAY_BASE_90_125_OK
+```
+
+La telemetría recibida demuestra que el ángulo de Base **no supera 125°** en esta reproducción. La descripción anterior del usuario «90 a 180 a 90» no corresponde a los datos publicados por el monitor; la causa visual exacta no está confirmada. `robotModel.js` utiliza una rotación relativa `base.current - 90`, por lo que la escena recibe hasta 35° de rotación relativa desde Home.
+
+**Próxima comprobación 9.43:** verificar directamente en la UI en `http://127.0.0.1:5174/` que Home, Saludo, Rutina, Cancelar/Home y los seis deslizadores estén deshabilitados con `runtime_mode=jetson_replay` y `mode=monitor`. No dar por probada la protección de cada control por las pruebas previas de movimiento. No enviar órdenes remotas al hardware para comprobarlo.
+
+Esta reproducción usa datos de un simulador matemático y no encoders, percepción ni servo físico. Mantener OE alto a 3.3 V, potencia externa apagada y rama `main` intacta.
