@@ -199,3 +199,22 @@ Después de confirmar que el control de Base funciona en el gemelo 3D, se solici
 **Resultado:** la coreografía se considera **satisfactoria a nivel visual por observación del usuario**. No se recibieron trazas de cada articulación ni un snapshot posterior al final de la secuencia, por lo que **todavía no se ha comprobado programáticamente** el retorno exacto de los seis ejes a Home ni el restablecimiento de `mode=manual`. Esa es la siguiente verificación segura: recibir un snapshot WebSocket local **de solo lectura**, comprobar `runtime_mode=simulation`, `mode=manual` y `current=target=Home` para los seis servos (90, 50, 165, 10, 170, 40 grados respectivamente).
 
 El servidor WebSocket de la Mac está aislado en `127.0.0.1:8765`. **Esta coreografía NO ejecutó el simulador Python 3.6 de la Jetson** ni validó salidas PCA9685. Mantener `OE` alto a 3.3 V y alimentación externa de servos apagada. La conexión Jetson→Mac y su contrato de telemetría de solo lectura siguen pendientes.
+
+## 9. Paso 9.35: retorno Home verificado tras Saludo (Mac, 30-10-2026)
+
+El usuario ejecutó en la Mac un **cliente WebSocket de solo lectura** después de probar `Saludo` en el dashboard. La salida recibida confirmó:
+
+| Dato | Resultado |
+|---|---|
+| `runtime_mode` | `simulation` |
+| `mode` | `manual` |
+| Base | `current = target = 90` |
+| Hombro | `current = target = 50` |
+| Codo | `current = target = 165` |
+| Muñeca vertical | `current = target = 10` |
+| Giro de muñeca | `current = target = 170` |
+| Garra | `current = target = 40` |
+
+Resultado literal: `RESULTADO: HOME VERIFICADO`. **Seis de seis ejes correctos, sin medición física ni control PCA9685.** Con ello se cierra la línea base local del Control Center en Mac: WebSocket real, controles visuales, movimiento simulado de Base, coreografía Saludo visual y retorno virtual exacto a Home.
+
+**Paso 9.36 propuesto:** validar acceso Mac→Jetson mediante el SSH existente y emitir un snapshot JSON desde `ArmSimulation().snapshot()` **sin abrir puertos en la Jetson ni generar salidas PWM**. A continuación se podrá definir un contrato versionado de telemetría de solo lectura y un adaptador en Mac con controles deshabilitados para datos remotos. Hasta que se pruebe, no afirmar que Jetson y Mac ya están enlazadas por telemetría.
