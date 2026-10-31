@@ -280,7 +280,8 @@ PR Raspberry Pi 4: https://github.com/Antonio-Richaud/Brazo-robot/pull/4
 - [x] Verificar handshake WebSocket y snapshot JSON del backend Mac en cliente Python 3.12 de solo lectura (paso 9.32): protocolo 2, runtime simulación, 6/6 ejes, `measured: false`, ESP32 desconectado.
 - [x] Verificar visualmente el estado conectado del dashboard React: captura del usuario confirma `CONNECTED`, `simulation`, ESP32 sin enlace, percepción off, seis tarjetas de servos y modelo 3D renderizado (paso 9.33, comprobación parcial).
 - [x] Verificar movimiento simulado de Base de 90° a 105° y respuesta del gemelo 3D desde el navegador (paso 9.33). **El usuario confirmó que funciona**; sin medir movimiento físico.
-- [ ] Probar coreografía `Saludo` en el Control Center con `runtime_mode=simulation`, verificando animación de ejes, retorno virtual a Home y estado `manual` al terminar.
+- [x] Probar visualmente la coreografía `Saludo` con `runtime_mode=simulation` en la Mac: el usuario comunicó «Sí parece que funciona bien» (paso 9.34).
+- [ ] Confirmar vía snapshot WebSocket **de solo lectura** después de Saludo el retorno exacto a Home (`current` y `target`) de los seis servos y `mode=manual`; la observación visual no sustituye esta comprobación.
 - [x] Estudiar y probar pines J6 y comunicación I2C PCA9685 en Jetson Nano 2GB, sin alimentar motores.
 
 ### Fase C — Integración control físico
