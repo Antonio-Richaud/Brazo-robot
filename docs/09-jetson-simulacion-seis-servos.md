@@ -333,3 +333,13 @@ La telemetría recibida demuestra que el ángulo de Base **no supera 125°** en 
 **Próxima comprobación 9.43:** verificar directamente en la UI en `http://127.0.0.1:5174/` que Home, Saludo, Rutina, Cancelar/Home y los seis deslizadores estén deshabilitados con `runtime_mode=jetson_replay` y `mode=monitor`. No dar por probada la protección de cada control por las pruebas previas de movimiento. No enviar órdenes remotas al hardware para comprobarlo.
 
 Esta reproducción usa datos de un simulador matemático y no encoders, percepción ni servo físico. Mantener OE alto a 3.3 V, potencia externa apagada y rama `main` intacta.
+
+## 17. Paso 9.43: verificacion DOM de controles bloqueados (30-10-2026)
+
+El usuario compartió una captura de Chrome DevTools del dashboard `5174` que confirma cuatro botones de acción en estado `disabled=true`: **Home, Saludo, Rutina, Cancelar/Home**. La inspección de los controles de articulación mostró **`Deslizadores bloqueados: 6 de 6`** y la salida **`VERIFICACION: CONTROLES_BLOQUEADOS_OK`**.
+
+La verificación visual/DOM, sumada a `command_handler=None` del WebSocket del monitor de replay, cierra la prueba de bloqueo de controles en el modo de **reproducción Jetson simulada**. No constituye una verificación de seguridad de servos físicos ni demuestra captura de telemetría en tiempo real.
+
+La misma captura contiene repetidas advertencias de Three.js sobre `PCFSoftShadowMap` obsoleto y un contador de un error rojo, cuya descripción no es visible. Este aspecto se deja expresamente pendiente de diagnóstico de consola; no asumir que el mensaje `undefined` devuelto por el bloque de inspección es un error (es normal).
+
+**Próximo paso:** identificar el error rojo en DevTools y revisar en una etapa separada el warning repetitivo de sombras sin romper la escena. Mantener `OE` alto, alimentación externa de servos apagada y rama `main` intacta.
