@@ -194,3 +194,38 @@ El usuario aclara: **«Cuando acciono el stop le deja de llegar corriente a las 
 **Paso 10.5 cerrado funcionalmente**, manteniendo como pendientes la revision de protecciones AC, capacidad del STOP, control del rearranque y las pruebas mecanicas. No emitir comandos PWM ni retirar OE en esta fase.
 
 **Siguiente paso 10.6 (preparacion, sin movimiento):** seleccionar un unico servo pequeño, preferentemente SG90 del canal 5 (garra), para una futura prueba **desacoplado mecanicamente de la garra o sin carga**, con el brazo estable y sin riesgo de pellizcos. Confirmar que se puede aislar el servo de la mecanica; si no se puede, no probar movimiento desde el software. Toda manipulacion de conectores se hace con la fuente de servos y la Jetson desenergizadas, no solo con STOP. No rearmar STOP hasta definir el control individual con arranque seguro, watchdog, limites y un medio de corte probado.
+
+
+## 13. Paso 10.6: brazo ensamblado — primer servo sin desacoplar (31 de octubre de 2026)
+
+**Nueva confirmacion del usuario:** «Todo esta acoplado en la documentacion tienes todo lo necesario». Los seis servomotores siguen montados y acoplados mecanicamente al brazo; no pedir de nuevo que se desacople la garra ni presentar un servo aislado sobre la mesa como estado actual. Los archivos existentes describen la arquitectura, asignacion de canales y limites logicos, pero **NO documentan calibracion fisica de orientacion del horn, topes/recorridos realmente comprobados ni los angulos actuales medidos**. Los motores MG995/SG90 actuales no aportan encoder al controlador.
+
+### Inventario existente (ver docs/01 y config.py)
+
+| Servo ID | Articulacion | Motor | Canal PCA9685 | Home LOGICO | Limites LOGICOS (sin calibrar) |
+|---|---|---|---:|---:|---|
+| 1 | Base | MG995 | 0 | 90 grados | 10-170 |
+| 2 | Hombro | MG995 | 1 | 50 grados | 15-165 |
+| 3 | Codo | MG995 | 2 | 165 grados | 15-165 |
+| 4 | Muneca vertical | SG90 | 3 | 10 grados | 10-170 |
+| 5 | Giro de muneca | SG90 | 4 | 170 grados | 10-170 |
+| 6 | Garra | SG90 | 5 | 40 grados | 20-140 |
+
+### Hallazgos de codigo antes de cualquier movimiento acoplado
+
+1. `jetson/pca9685_safe.py` **solo permite `status` y `disable-all`**, sin API de habilitar servos, y la simulacion `jetson/arm_simulation.py` no tiene transporte fisico. No existe un comando seguro de la Jetson para mover un unico servo actualmente.
+2. **OE sigue conectado fisicamente a 3.3 V**, por lo que todas las salidas deben permanecer inhibidas hasta disenarse y verificar un control de habilitacion de señal a prueba de fallos. Nunca cortocircuitar OE ni retirarlo con potencia energizada.
+3. `robot_arm_controller/robot_arm_controller.ino` utiliza pulsos generales de 500-2500 us y en `setup()` ejecuta `writeAllServosCurrent()` con posiciones Home predefinidas. **Ese firmware ESP32 puede ordenar inmediatamente posiciones Home a los seis servos al arrancar**; no usarlo ni iniciar el backend `--mode hardware` como atajo para la primera prueba Jetson con todos los ejes montados.
+4. La interfaz WebSocket de la Mac en modo Jetson replay es de **solo lectura** y sus 10 controles permanecen bloqueados. No habilitar Home, Saludo ni Rutina del brazo fisico.
+5. El paro del usuario esta en el **lado AC de la fuente de potencia**, independiente de la fuente de Jetson; se reporto corte correcto de la alimentacion V+ pero aun no hay medicion de tiempo de descarga ni validacion de todos los aspectos de seguridad electrica.
+
+### Criterios del primer ensayo, sin desmontar el brazo
+
+- Se puede usar el SG90 de garra (servo ID6, canal 5) **montado**, pero sin objeto sujetado y con zona despejada; el acoplamiento significa que NO es una prueba sin carga mecanica. La direccion de cierre/apertura, los topes y la posicion real del horn permanecen desconocidos; no suponer que el valor `40 grados` es mecanicamente seguro.
+- Brazo apoyado/asegurado frente a perdida de par de otros ejes; nadie dentro del alcance, sin carga sostenida por gravedad o piezas que puedan caer.
+- Diseñar controlador de **unico canal autorizado** con estado seguro por defecto, otros 15 canales FULL OFF, habilitacion explicita bajo confirmacion humana, movimiento incremental de amplitud acotada y vigilancia de tiempo y fallos, y **deshabilitacion automatica** al terminar o perder enlace. La rutina NO debe mover a Home al iniciar, al terminar ni ante un error.
+- La habilitacion del canal 5 requiere resolver por diseño el bloqueo OE alto, sin modificar cableado bajo tension y conservando deshabilitacion segura al reiniciar/caer el controlador; requiere validar modo de falla y acceso al paro fisico.
+- Antes de ejecutar movimiento real, calibrar el punto inicial con medios compatibles con el montaje (documentar posicion y libertad de recorrido) y validar direccion/rangos de pulso reales; un cambio minimo en el objetivo puede producir un salto importante en el **primer pulso** si no se conoce la posicion actual.
+- Mantener en `FULL OFF 16/16` y OE alto hasta completar diseño, pruebas simuladas del controlador y preflight fisico. **No emitir `home`, `s 6 ...`, `d 6 ...`, ni ejecutar la ruta ESP32 de forma fisica ahora.**
+
+**Decision actual:** no desmontar por defecto. Preparar primero software y protocolo especificos del servo de la garra acoplado; conservar todo en `feat/jetson-servo-power-safety`, sin cambiar `main`. No declarar que los limites logicos son una calibracion fisica.
