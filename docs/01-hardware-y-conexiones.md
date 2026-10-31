@@ -80,3 +80,29 @@ pendiente y no habilita autonomia con una nube sin registrar.
   movimiento.
 - Añadir un interruptor fisico que corte la potencia de los servos antes de
   habilitar planeacion autonoma.
+
+
+## Actualizacion de montaje (31-10-2026)
+
+La descripcion inicial de esta guia (fuente de servos apagada durante las pruebas
+I2C) corresponde al **estado historico del 30-10**. Segun confirmacion posterior
+del usuario, la fuente conmutada nominal 5 V / 10 A ya alimenta las clemas
+V+ del PCA9685; se han comunicado medidas de ~5 V en V+ y ~3.3 V en OE.
+La lectura I2C de la Jetson volvio a confirmar FULL OFF en los 16 canales
+despues de conectar la fuente. El STOP instalado interrumpe la **entrada AC
+de la fuente de servos** y deja a la Jetson alimentada por su eliminador
+independiente; no esta instalado como corte directo de V+ DC.
+
+Los seis servos siguen **montados y acoplados**. Todavia no existe control
+Jetson que habilite PWM fisico con arranque seguro; el modulo
+`jetson/pca9685_safe.py` solo expone `status` y `disable-all`.
+El firmware ESP32 anterior ordena HOME a los seis ejes en `setup()`, por
+lo que no debe ejecutarse para hacer una primera prueba fisica.
+
+**Para continuar:** consultar
+[Plan de habilitacion con 2N2222, watchdog y un solo servo acoplado]
+(11-plan-habilitacion-fisica-2n2222.md) y
+[bitacora de fuente y STOP](10-seguridad-fuente-servos-5v-10a.md).
+No unir GPIO directamente a OE mientras permanezca conectado a J6-17
+3.3 V. Corte de potencia antes de apagar Jetson, no mover servos
+sin los requisitos de la fase A-C del plan.
