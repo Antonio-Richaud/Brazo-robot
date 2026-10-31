@@ -501,3 +501,13 @@ Esto resuelve el alcance **numérico** de la diferencia entre los «180°» desc
 **Pendiente de pruebas reales:** en Mac, `git pull --ff-only`, `npm run lint`, `npm run build`, `curl -I http://127.0.0.1:5174/favicon.svg` tras recarga, y Chrome DevTools con consola limpiada y recarga de página para verificar que desaparezcan la petición 404 del favicon y la advertencia de PCFSoftShadowMap. No declarar resuelto hasta recibir la salida/captura.
 
 **Nota:** el `undefined` mostrado tras ejecutar la función de inspección en DevTools es normal; el error 404 era un recurso web faltante. Mantener 8767 como monitor solo lectura y conservar OE alto a 3.3 V y V+ apagada; `main` intacta.
+
+## 25. Paso 9.45: lint/build y favicon HTTP 200 confirmados (30-10-2026)
+
+**Salida de terminal recibida de la Mac:** el usuario actualizó la rama `feat/jetson-nano-physical-ai` con fast-forward `d3d0e27..45cd2ff`, incorporando `index.html`, el nuevo `public/favicon.svg`, `RobotScene.jsx` y la documentación. Desde `control-center/frontend`, ejecutó `npm run lint` (ESLint finalizó sin errores), `npm run build` (Vite 8.3.5, **571 módulos**, compilación exitosa en **539 ms**) y `curl` a `http://127.0.0.1:5174/favicon.svg` (**`FAVICON_HTTP_200`**).
+
+**Conclusión limitada:** el recurso SVG ya se entrega por HTTP 200 y el cambio de sombras compila correctamente. **Todavía no consta una inspección nueva de DevTools** después de limpiar la consola y recargar: no afirmar aún que hayan desaparecido definitivamente el antiguo 404 de `/favicon.ico` o los avisos de `PCFSoftShadowMap` del navegador.
+
+**Paso siguiente 9.46:** con el monitor Jetson `:8767` y el frontend `:5174` activos, abrir DevTools, desactivar `Preserve log` si estuviera habilitado, limpiar la consola, recargar `http://127.0.0.1:5174/` y observar durante varios segundos nuevos errores o advertencias. Verificar que la animación continúa y los controles siguen deshabilitados. Solicitar únicamente el resultado de esa inspección. No cambiar servos, backend ni geometría.
+
+**Seguridad:** la reproducción se basa en datos matemáticos de Jetson; no hay medición física ni habilitación de PWM. OE alto a 3.3 V, fuente externa apagada y `main` intacta.
