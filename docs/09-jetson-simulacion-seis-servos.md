@@ -430,3 +430,11 @@ No energizar servos, no habilitar PWM y no alterar `main`.
 **Siguiente prueba (9.51):** sin recargar la pagina, relanzar el monitor pasivo desde la Mac usando SSH y el emisor JSONL existente. Esperado `JETSON_REPLAY_MONITOR_READY ws://127.0.0.1:8767`, paso automatico de `RECONNECTING` a `CONNECTED`, reanudacion del replay de Base entre 90° y 125° y controles 10/10 todavia deshabilitados. No afirmar recuperacion hasta recibir evidencia del usuario.
 
 Continuar con V+ desconectada, OE alto a 3.3 V y `main` sin modificaciones.
+
+## 27. Paso 9.51: enlace del monitor recuperado (30-10-2026)
+
+El usuario compartió captura de Chrome DevTools del dashboard de reproducción en puerto 5174 tras la prueba de reactivación del monitor de puerto 8767. La UI muestra `CONNECTED`, `MONITOR` y `runtime_mode=jetson_replay`. Se observan en el registro del propio dashboard eventos `[WS] cliente desconectado` seguidos de nuevos `[WS] cliente conectado`, y el evento `[JETSON] REPLAY de simulacion validada (NO hardware)`. Esto confirma **recuperación de la conexión de transporte** después del estado offline `RECONNECTING`. El modelo 3D se sigue dibujando.
+
+**Lo que aún no acredita una captura estática:** que la Base haya vuelto a animarse entre 90° y 125° y que los diez controles permanezcan deshabilitados en el estado `CONNECTED` restaurado. Verificarlo con observación de valores y conteos DOM de solo lectura antes de cerrar toda la prueba 9.51.
+
+En DevTools persiste únicamente el aviso no bloqueante `THREE.Clock` de dependencia, sin errores de conexión visibles. No silenciarlo ni forzar actualización mayor. Mantener OE alto, V+ de motores apagada, backend normal separado y `main` intacta.
