@@ -173,3 +173,19 @@ Esperar cierre de SSH y apagado de Jetson; desconectar su eliminador solo cuando
 - Registro de fuente, mediciones, STOP y foto: [10-seguridad-fuente-servos-5v-10a.md](10-seguridad-fuente-servos-5v-10a.md)
 
 **Este documento es un plan de trabajo, no una indicacion de manipular circuitos de red ni de habilitar los servos sin supervision y pruebas.**
+
+
+## 9. Decision de componente: 2N2222 metalico TO-18 (31 de octubre de 2026)
+
+**Decision confirmada por el usuario:** dispone de versiones TO-92 (plasticos) y TO-18 (metalicos, 'de latita') y **prefiere utilizar los TO-18** para el circuito de habilitacion OE. Adoptar **2N2222 / 2N2222A de encapsulado metalico TO-18** como candidato de diseño, en lugar de TO-92, sin alterar los requisitos de watchdog e inhibicion por defecto.
+
+**Referencia de fabricante, NO identificacion de la pieza concreta del usuario:** Philips/NXP describe los 2N2222 y 2N2222A TO-18 con emisor=pin 1, base=pin 2, colector=pin 3 y **carcasa metalica unida al colector**. La numeracion debe orientarse por la muesca y la vista exacta del dibujo del datasheet; no es seguro suponer que la disposicion del plastico TO-92 es igual. Fuente: https://web.stanford.edu/class/ee133/datasheets/2n2222.pdf (Philips Semiconductors, pagina impresa 2, figura 1).
+
+**Implicaciones de diseño:**
+
+- El encapsulado metalico **no se conecta a V+ 5V ni transporta corriente de motores**. El 2N2222 controla solamente el nodo OE de logica 3.3V por medio de un circuito de colector abierto con resistencias, luego de aprobar el esquema.
+- En la version TO-18 de Philips el **colector esta unido a la carcasa**, por lo que la latita puede ser un punto electrico activo; evitar contacto con chasis, GND, disipadores, otras piezas metalicas o conductores sin aislamiento. Confirmar si esto es asi para el fabricante exacto del usuario.
+- **Antes de elegir pines o soldar:** solicitar foto nitida de un transistor real donde se vea el texto grabado en su lata y, de ser posible, una segunda vista de la base con las tres patillas y su muesca. Contrastar la inscripcion con la hoja de datos del mismo fabricante; usar multimetro en modo diodo para corroborar polaridad E/B/C si es necesario.
+- No hacer cambios a OE ni alimentar motores por este cambio de preferencia. La conexion actual OE a J6 pin fisico 17 (3.3V fijo) sigue vigente y debe permanecer sin tocar.
+
+**Siguiente paso practico:** identificar marcaje y muesca del componente exacto; despues dimensionar resistencias y definir el circuito con la red pull-down de OE y un interlock independiente.
