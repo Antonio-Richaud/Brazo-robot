@@ -189,3 +189,16 @@ Esperar cierre de SSH y apagado de Jetson; desconectar su eliminador solo cuando
 - No hacer cambios a OE ni alimentar motores por este cambio de preferencia. La conexion actual OE a J6 pin fisico 17 (3.3V fijo) sigue vigente y debe permanecer sin tocar.
 
 **Siguiente paso practico:** identificar marcaje y muesca del componente exacto; despues dimensionar resistencias y definir el circuito con la red pull-down de OE y un interlock independiente.
+
+
+## 10. Inventario fotografico: cuatro 2N2222A metalicos disponibles (31 de octubre de 2026)
+
+El usuario envio **cuatro fotografias de uno de sus transistores** y confirmo: «Tengo 4 de estos». El componente de las fotos es de encapsulado metalico con tres terminales, formato compatible con TO-18. La inscripcion visible es **compatible con `2N2222A`** (parte de la palabra/modelo se curva alrededor de la lata); se aprecia logotipo circular, pero **el fabricante y lote no pueden verificarse con certeza** por las fotos. El usuario dispone de **4 piezas** de este tipo, no necesariamente cada una caracterizada individualmente.
+
+**Fuente de comparacion**: hoja oficial onsemi 2N2222A (`https://www.onsemi.com/download/data-sheet/pdf/2n2222a-d.pdf`), paquete TO-18 / CASE 206AA / STYLE 1. Dibujo visto desde abajo con muesca de orientacion y pines `1=emisor`, `2=base`, `3=colector`; NXP/Philips documenta para su version que la carcasa metalica esta unida al colector (`https://web.stanford.edu/class/ee133/datasheets/2n2222.pdf`). El dibujo es **referencia de un fabricante y no identifica por si solo el pinout exacto de la pieza fotografiada**.
+
+**No se ve de frente la cara inferior de la lata ni la muesca de alineacion con suficiente claridad**; no asignar a las patillas de la imagen C/B/E por su ubicacion aparente. Preferir prueba externa del componente suelto en modo diodo de multimetro, antes de introducirlo en protoboard o soldarlo, especialmente por la posibilidad de que la carcasa sea colector.
+
+**Paso propuesto 11.2 (sin cables de Jetson):** una pieza desconectada, multimetro en modo prueba de diodos; identificar el terminal de base NPN encontrando ~0.5-0.8 V desde punta roja en base hacia cada una de las otras dos patillas con punta negra, y lectura OL al invertir polaridad. Anotar combinaciones y luego contrastar colector/emisor con muesca y/o diagrama del fabricante exacto; **el modo diodo por si solo no determina siempre de forma fiable que patilla es C frente a E**. No hacer prueba en un circuito energizado. Si no hay dos lecturas directas de diodo, no usar esa unidad.
+
+**Inventario para el circuito:** reservar 1 unidad 2N2222A TO-18 para el futuro sink OE, 3 unidades de repuesto; las resistencias, componentes de watchdog independiente y montaje final siguen por identificar. El resto de requisitos del plan siguen vigentes: NO cambiar el enlace directo OE–3.3 V todavía, NO conectar GPIO directo y NO habilitar servos.
