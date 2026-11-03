@@ -75,3 +75,13 @@ Se ejecuto otro `status` al final que repitio `MODE1=0x01`, `MODE2=0x04`, `PRE_S
 **Siguiente fase:** antes del movimiento real, establecer control fisico seguro de OE (hoy atado a 3.3 V constante), implementar movimiento de un solo eje en codigo con estado inicial controlado, aislamiento `FULL OFF` de canales 0-4 y 6-15, tiempo limitado, corte logico de salida y STOP de potencia accesible. Evitar que `OE` flote durante arranque, apagar primero potencia ante fallos y NO probar Home/Saludo/Rutina completos con 6 servos acoplados sin calibracion.
 
 **Estado de hito:** APROBADO (programacion I2C enmascarada); **primer movimiento fisico:** PENDIENTE. **Estado actual del STOP:** no inferible de la salida.
+
+## Diseño preparado para primer movimiento sin circuito adicional (2 de noviembre de 2026)
+
+Tras comprobar el hito `GARRA_STAGE_OK`, se investigo el hardware de Jetson Nano 2GB y la placa PCA9685: los conectores GPIO de J6 usan TXB0108, que NVIDIA documenta con alta sensibilidad a pull-up/down externos. La placa tipo Adafruit mantiene `OE` pulled LOW. **Se descarta la idea de conectar OE directamente a GPIO en esta prueba** por riesgo de niveles incompatibles.
+
+**Se agrego al repositorio** el modulo `jetson/garra_pulso_laboratorio.py` con dos comandos: `preflight` (no movimiento; FULL OFF, modo y frecuencia, canal5 enmascarado) y `pulse --confirm-oe-low --confirm-stop-ready` (250ms a 1500us solo canal5, FULL OFF global en finally). Pruebas automatizadas de mock en `jetson/tests/test_garra_pulso_laboratorio.py`. **El usuario NO ha ejecutado estos comandos aun ni ha retirado el cable OE**.
+
+El primer movimiento real no depende de un transistor, pero requerira **con equipos apagados** retirar SOLO el jumper actual de OE a J6 pin17 3.3V; verificar con multimetro que OE queda cerca de 0 V gracias al pull-down de la placa, STOP de potencia activado durante boot/preflight, y luego operar manualmente con paro fisico accesible. No existe control fail-safe por software y no esta autorizada una rutina completa automatica.
+
+**Referencias y procedimiento actualizados:** [docs/12-prueba-directa-pca9685-sin-transistor.md](12-prueba-directa-pca9685-sin-transistor.md). Estado: codigo en rama, hardware OE aun no modificado; primera prueba fisica PENDIENTE.
