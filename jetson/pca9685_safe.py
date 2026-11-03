@@ -7,7 +7,8 @@ NO tiene ninguna funcion para habilitar canales o mover motores.
 Conexiones logicas previstas: J6 pin 1 -> VCC 3.3 V,
 J6 pin 3 -> SDA, J6 pin 5 -> SCL, J6 pin 6 -> GND,
 J6 pin 17 -> OE 3.3 V (salidas inhibidas).
-Mantener V+ (alimentacion de motores) desconectado.
+Antes de pruebas de registros: activar STOP de potencia de servos y
+mantener OE en 3.3 V. La placa puede tener el riel V+ cableado.
 """
 
 import argparse
@@ -121,7 +122,8 @@ class SafePCA9685(object):
     def stage_disabled_pulse(self, channel, pulse_us):
         """Escribe un pulso ENMASCARADO por FULL OFF; nunca lo habilita.
 
-        Intencionadamente no se expone como accion del CLI en esta fase.
+        Se expone en CLI solo para garra/canal 5, pulso 1500 us y
+        confirmacion humana de STOP + OE HIGH.
         Limitado a los seis canales del brazo, 1000..2000 us de laboratorio.
         Estos valores no implican calibracion ni son un rango seguro de servo.
         """
@@ -168,21 +170,56 @@ def main(argv=None):
         description="Diagnostico seguro del PCA9685 Jetson sin habilitar servos"
     )
     parser.add_argument(
-        "action", nargs="?", choices=("status", "disable-all"),
-        default="status", help="status no escribe registros; disable-all solo apaga"
+        "action", nargs="?", choices=("status", "disable-all", "stage-garra-1500"),
+        default="status", help="stage-garra-1500 escribe registros, NO habilita PWM"
+    )
+    parser.add_argument(
+        "--confirm-stop-oe", action="store_true",
+        help="Confirma STOP fisico ACTIVADO y OE conectado a 3.3 V"
     )
     args = parser.parse_args(argv)
+    if args.action == "stage-garra-1500" and not args.confirm_stop_oe:
+        parser.error("stage-garra-1500 requiere --confirm-stop-oe")
+
+    controller = None
     try:
         controller = SafePCA9685(I2CToolsBus())
         if args.action == "disable-all":
             controller.disable_all()
             print("FULL OFF aplicado y comprobado en los 16 canales")
+        if args.action == "stage-garra-1500":
+            # Seguridad: antes de cualquier escritura, validar modo y TODOS
+            # los canales inhibidos. OE HIGH se verifica externamente.
+            previous = controller.inspect()
+            if previous["mode1"] & 0x10 or previous["mode2"] != 0x04:
+                raise RuntimeError("Modo PCA9685 no esperado; NO preparar garra")
+            if previous["pre_scale"] != EXPECTED_PRE_SCALE:
+                raise RuntimeError("Frecuencia PCA9685 no esperada")
+            if not previous["all_off"]:
+                raise RuntimeError("No se preparara PWM con un canal habilitado")
+
+            count = controller.stage_disabled_pulse(5, 1500)
+            if not controller.all_channels_off():
+                raise RuntimeError("FULL OFF perdido despues de preparar garra")
+            # Confirmar que el unico pulso previsto esta enmascarado.
+            if controller.bus.read_reg(channel_off_high_register(5)) != (
+                    FULL_OFF | ((count >> 8) & 0x0F)):
+                raise RuntimeError("Garra: lectura de registro OFF_H inesperada")
+            print("GARRA_STAGE_OK: canal 5, 1500 us ({} cuentas)".format(count))
+            print("SIN MOVIMIENTO: FULL OFF 16/16 y OE HIGH externo")
         snapshot = controller.inspect()
         print_snapshot(snapshot)
         return 0 if snapshot["all_off"] else 2
     except (ValueError, OSError, RuntimeError, subprocess.SubprocessError) as exc:
+        if controller is not None and args.action == "stage-garra-1500":
+            try:
+                controller.disable_all()
+            except (ValueError, OSError, RuntimeError,
+                    subprocess.SubprocessError) as backup_exc:
+                print("ALERTA: no se pudo asegurar FULL OFF: {}".format(
+                    backup_exc), file=sys.stderr)
         print("ERROR I2C: {}".format(exc), file=sys.stderr)
-        print("Mantener desconectada la fuente de servos y OE en 3.3 V", file=sys.stderr)
+        print("ACTIVAR/CONSERVAR STOP fisico y OE a 3.3 V", file=sys.stderr)
         return 1
 
 
