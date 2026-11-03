@@ -125,3 +125,12 @@ TODOS DESHABILITADOS: SI
 **Siguiente paso 12.2:** con el STOP activado (sin energia en V+ de motores), Jetson encendida y OE conectado fisicamente a J6 pin17 3.3 V, sincronizar la rama `feat/jetson-oe-interlock-20261031` en la Jetson y ejecutar `stage-garra-1500 --confirm-stop-oe`. Este paso escribira registros de pulso enmascarado para canal 5 sin habilitar salidas; verificar que FULL OFF siga 16/16. Si la rama o test falla, detenerse; no conectar OE a GND ni habilitar motores.
 
 **Alcance:** ningun servo ha sido movido. No ejecutar Home/Saludo/Rutina aun con los seis acoplados y sin calibrar.
+
+
+## 8. Bitacora y ultimo paso confirmado (2 de noviembre de 2026)
+
+El usuario confirmo con transcripcion de SSH que `git checkout -b feat/jetson-oe-interlock-20261031 --track origin/feat/jetson-oe-interlock-20261031` funciono en la Jetson. El comando `git status -sb` devolvio `## feat/jetson-oe-interlock-20261031...origin/feat/jetson-oe-interlock-20261031`. No repetir el `checkout -b` porque la rama local ya existe.
+
+El ultimo texto de terminal del Mac termina en `quote>`; esto indica una **comilla de shell sin cerrar**, no fallo de I2C. Salir con `Control+C` y recuperar el prompt `%` antes de continuar. Todavia no se ha ejecutado ni compartido salida de `stage-garra-1500`; sigue pendiente y solo se puede ejecutar tras confirmar STOP y OE fisicos.
+
+El registro paso a paso y estado pendiente se conserva en [13-bitacora-pruebas-jetson-pca9685.md](13-bitacora-pruebas-jetson-pca9685.md).
