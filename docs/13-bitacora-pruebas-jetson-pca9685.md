@@ -44,7 +44,7 @@ ssh -T -o ConnectTimeout=10 antonio@jetson-nano.local 'cd "$HOME/robot-lab/Brazo
 ## Prohibiciones y límites durante esta etapa
 
 - No unir OE a GND ni a un GPIO sin antes quitar físicamente, con equipos apagados, el cable que lo mantiene a 3.3 V fijo; GPIO LOW en paralelo produciría conflicto eléctrico.
-- No alimentar V+ con `OE` flotante, ni poner el brazo en Home al arrancar.
+- No alimentar V+ con `OE` sin nivel medido. Para la prueba directa, solo se permite OE desconectado del pin17 si el pull-down de la placa lo mantiene estable cerca de 0 V; no poner el brazo en Home al arrancar.
 - No ejecutar Saludo/Rutina sobre los seis servos montados sin calibración individual.
 - El flag `--confirm-stop-oe` **no es un sensor**; únicamente indica la confirmación del operador y no puede comprobar cableado ni STOP.
 - La prueba de preparación escribe registros de un pulso **enmascarado**; no emite PWM hacia servos y no supone prueba física de movimiento.
