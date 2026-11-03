@@ -41,36 +41,48 @@ python3 jetson/pca9685_safe.py status
 
 Esto sí son **escrituras reales de registros por I²C** en la Jetson, pero **no es señal PWM en el conector del servo**, porque OE y FULL OFF permanecen en inhibición.
 
-## 3. Arquitectura para el posterior primer movimiento SIN añadir transistor
+## 3. Arquitectura experimental corregida: SOLO I2C, sin GPIO ni 2N2222
 
-Posible ruta *únicamente supervisada*, después de la prueba anterior y nueva revisión del montaje:
+**Decisión tras comprobar documentación de hardware de NVIDIA:** No usar un GPIO de J6 conectado directamente a `OE` de la placa tipo Adafruit. El header de Jetson Nano 2GB utiliza traductores TXB0108 con baja capacidad de carga DC y NVIDIA recomienda que eventuales resistencias de pull-up/pull-down en estas señales superen **50 kΩ**. La placa PCA9685 tipo Adafruit tiene OE **pulled LOW por defecto** y el valor exacto de su resistor en este clon no está certificado. Un GPIO directo podría no alcanzar niveles lógicos estables. La propuesta previa de GPIO directo queda **DESCARTADA para esta prueba**.
 
-- Usar un GPIO de salida de 3.3 V de J6 **que se haya identificado oficialmente y verificado libre** para gobernar directamente la entrada OE de la placa PCA9685; su nivel HIGH inhibe salidas y LOW las permite (según registros).
-- La conexión directa OE → **J6 pin 17, 3.3 V fijo** tiene que retirarse **con Jetson y fuente completamente apagadas y sin energía residual** antes de conectarla a ese GPIO. **NUNCA unir una salida digital que pueda ir LOW con OE todavía conectado a la fuente 3.3 V fija.**
-- El GPIO deberá fijarse en HIGH **antes** de rearmar potencia; no poner energía a V+ durante boot, reset o caída del proceso. En placas tipo Adafruit OE tiene pull-down de fábrica: si el GPIO está flotando o Linux se reinicia, OE puede caer a LOW y **permitir señales PWM imprevistas**.
-- El test físico exige como mínimo 15 canales `FULL OFF`, un único canal 5 programado, comprobación de posición inicial, pulso de primer contacto calibrado según mecanismo real, límites mecánicos y paro accesible.
-- El controlador para movimiento todavía **NO está implementado**. Antes se deberá preparar y probar el programa de control en banco con mock de bus/GPIO, temporizador de duración corta, fallo bloqueado, cierre a FULL OFF y un plan operativo que mantenga STOP activado ante cualquier error.
-- En ausencia de hardware independiente para vigilar OE, la pérdida de control del proceso/OS **podría dejar la salida habilitada**. Por ello no está permitida la operación desatendida ni rutinas completas ni automatización. El STOP exige al operador presente para detener energía.
+**Alternativa para laboratorio supervisado sin circuito adicional:** retirar completamente el conductor `OE→J6 pin17 (3.3 V fijo)` *solo con ambos equipos apagados y la fuente sin tensión*, dejar la entrada OE de la placa sin conexión externa si y solo si la propia placa demuestra un pull-down efectivo con medida `OE≈0 V` cuando Jetson vuelva a encender. Así el PCA9685 queda con **salidas globalmente permitidas** por OE LOW, pero conservamos los **16 canales FULL OFF** por registro hasta armar uno manualmente desde I2C.
 
-**Importante:** conducir OE con GPIO directamente es una posibilidad eléctrica para una prueba de laboratorio de duración breve, **no equivale a un sistema fail-safe**. Se prioriza no modificar cables hasta concluir programación enmascarada y pruebas previas. Si no se puede garantizar la mecánica segura de la garra montada, no se inicia la prueba de movimiento.
+**Límites importantes:**
+- Este método NO es fail-safe: pérdida de software, reinicio o bus I2C pueden dejar la salida habilitada. No apropiado para trabajo autónomo ni para ejecutar rutinas completas.
+- Todos los arranques/reinicios se hacen con **STOP físico ACTIVADO** hasta comprobar `FULL OFF 16/16` y frecuencia ≈50 Hz. La parada física corta AC de la fuente del servo, no garantiza tiempo de descarga instantáneo.
+- La alimentación de servos **nunca** se activa durante manipulación de cables, limpieza o apagado de Jetson.
+- `OE` NO debe quedar conectado simultáneamente a J6 pin17 y otro GPIO/GND. No unir nunca 3.3 V fijo y GND.
+- `OE≈0 V` se mide con multímetro en el pin OE del PCA9685 respecto al GND común, con **STOP activo**, sin tocar contactos de AC. Si no se observa LOW estable, detenerse y considerar interlock/buffer.
+- La primera señal tendrá 1500 μs por **250 ms** solo en canal5; los otros 15 permanecen FULL OFF. **No se sabe la posición mecánica real**; la garra puede saltar a un ángulo nuevo y debe estar despejada.
 
-## 4. Requisitos de aprobación del primer pulso físico
+### Código ya implementado en la rama
 
-- [ ] Comando `stage-garra-1500` confirmado en Jetson real (el paso 2 de este documento).
-- [ ] Conexión GPIO→OE seleccionada y verificada para el header J6 de Jetson Nano 2GB, sin cortos con pin17.
-- [ ] Programa físico de un canal probado con bus simulado y manejo de fallo/timeout.
-- [ ] Brazo y garra sin objetos, seguros ante caída o pellizcos; recorrido/dirección/pulso inicial revisados.
-- [ ] STOP físico accionable inmediatamente; V+ no se habilita hasta que Jetson haya inicializado y confirmado inhibición de señales.
-- [ ] Operador siempre presente; sin retorno automático a Home y sin comandos globales.
-- [ ] Apagado posterior: inhibir salidas, accionar STOP, apagar Jetson.
+`jetson/garra_pulso_laboratorio.py` ofrece dos acciones deliberadamente separadas:
 
-**Por ahora, el paso 2 es el único autorizado.** La ruta 2N2222 de `docs/11-plan-habilitacion-fisica-2n2222.md` se conserva sin implementarla, para un diseño posterior de supervisión más robusto.
+1. `preflight` — con **STOP activado y antes de alimentar servos**: fuerza FULL OFF 16/16, configura/restaura 50 Hz si es necesario, programa canal5 con pulso de 1500 μs **todavía en FULL OFF**; verifica registros.
+2. `pulse --confirm-oe-low --confirm-stop-ready` — SOLO después de que una persona confirme OE≈0 V, zona libre y STOP accesible, y tras energizar la fuente: inhibe todo, revalida frecuencia, habilita **solo canal 5 durante 250 ms** y ejecuta FULL OFF global en `finally`. No repite, no retorna a Home, ni afecta los demás canales.
+
+**Advertencia:** `finally` no puede recuperar un sistema congelado ni garantizar parada ante fallo del bus I2C. El usuario debe accionar STOP ante cualquier movimiento anormal. Los dos flags son confirmaciones humanas, **NO verificaciones eléctricas**.
+
+## 4. Protocolo por pasos antes del primer movimiento físico
+
+- [x] `stage-garra-1500` ejecutado y verificado en Jetson real con `MODE1=0x01`, `MODE2=0x04`, `PRE_SCALE=0x79`, `FULL OFF 16/16`.
+- [x] Código de laboratorio añadido a rama para `preflight` y pulso de 250ms solo canal 5; las pruebas automáticas deben aprobar antes de ejecutarlo físicamente.
+- [ ] Con STOP activado, ejecutar apagado seguro de la Jetson. Retirar únicamente el conductor `OE→J6 pin17` con ambos equipos apagados, mantener VCC/SDA/SCL/GND y los seis servos conectados.
+- [ ] Arrancar la Jetson **sin fuente de servos** y ejecutar `preflight`. Medir OE≈0 V; si no cumple, detenerse.
+- [ ] Confirmar la garra libre de cargas/tope, recorrido despejado, STOP físico alcanzable, operador junto a equipo.
+- [ ] Solo entonces energizar V+ de servos para prueba manual breve; ejecutar `pulse` una vez y registrar observación real de movimiento.
+- [ ] Tras la prueba, activar STOP antes de cualquier reinicio/apagado de Jetson y comprobar que los canales han vuelto a FULL OFF.
+- [ ] No ejecutar Home, Saludo, Rutina ni encadenar pulsos de forma automática hasta calibrar individualmente el brazo.
+
+**No saltar pasos ni extrapolar el éxito de registros a seguridad mecánica o un movimiento ya ejecutado.** La alternativa de 2N2222 + watchdog de `docs/11-plan-habilitacion-fisica-2n2222.md` se conserva para operar con habilitación global controlada y supervisión de fallos.
 
 ## 5. Referencias
 
 - [PCA9685 - NXP (datasheet, control OE y registro FULL OFF)](https://www.nxp.com/docs/en/data-sheet/PCA9685.pdf).
 - [Adafruit PCA9685 - Pinouts (OE pulled LOW por defecto)](https://learn.adafruit.com/16-channel-pwm-servo-driver/pinouts).
 - [Jetson Nano 2GB developer kit user guide - J6 / GPIO 3.3 V](https://developer.nvidia.com/embedded/learn/jetson-nano-2gb-devkit-user-guide).
+- [NVIDIA: Jetson Nano 40-Pin Expansion Header GPIO Usage Considerations / TXB0108](https://files.seeedstudio.com/wiki/reComputer/Jetson_Nano_Developer_Kit_40-Pin_Expansion_Header_GPIO_Usage_Considerations.pdf).
 
 
 ## 6. Estado real detectado en nuevo arranque: MODE1 SLEEP y prescale default (2 de noviembre de 2026)
@@ -96,7 +108,7 @@ python3 jetson/pca9685_safe.py status
 
 **Criterio de exito:** `MODE1: 0x01`, `MODE2: 0x04`, `PRE_SCALE: 0x79`, `FULL OFF 16/16`, `TODOS DESHABILITADOS: SI`. Si falla, conservar STOP y no mover. Esta secuencia **NO habilita PWM y NO mueve servos**. No conectar OE a GND ni a un GPIO mientras sigue unido directamente al pin 17 de 3.3 V.
 
-**Siguiente fase:** probar el comando `stage-garra-1500` con STOP activo y OE HIGH despues de actualizar la rama; despues abordar el pin OE y calibracion mecanica antes del primer movimiento fisico. No ejecutar rutinas completas Home/Saludo/Rutina. Requiere supervision, y sin interlock de hardware no es un sistema fail-safe para operacion automatica.
+**Siguiente fase (actualizada):** `stage-garra-1500` ya comprobado; seguir la ruta I2C directa de secciones 3 y 4, primero apagado seguro y comprobacion de OE, y despues calibracion mecanica antes de primer movimiento fisico. No ejecutar rutinas completas Home/Saludo/Rutina. Requiere supervision, y sin interlock de hardware no es un sistema fail-safe para operacion automatica.
 
 
 ## 7. Paso 12.1 comprobado: PCA9685 reconfigurado a 50 Hz (2 de noviembre de 2026)
@@ -122,7 +134,7 @@ TODOS DESHABILITADOS: SI
 
 **Interpretacion:** se escribieron y verificaron exitosamente los registros del PCA9685 para salir de SLEEP y fijar el divisor nominal de ~50 Hz. Los 16 canales permanecieron en FULL OFF despues de modificar frecuencia. Estos datos son lecturas de registros, no medicion instrumental de frecuencia PWM ni confirmacion de estado electrico de OE, que solo se valido antes por el usuario.
 
-**Siguiente paso 12.2:** con el STOP activado (sin energia en V+ de motores), Jetson encendida y OE conectado fisicamente a J6 pin17 3.3 V, sincronizar la rama `feat/jetson-oe-interlock-20261031` en la Jetson y ejecutar `stage-garra-1500 --confirm-stop-oe`. Este paso escribira registros de pulso enmascarado para canal 5 sin habilitar salidas; verificar que FULL OFF siga 16/16. Si la rama o test falla, detenerse; no conectar OE a GND ni habilitar motores.
+**Paso 12.2 COMPLETADO:** `stage-garra-1500 --confirm-stop-oe` ya se ejecuto en Jetson con FULL OFF 16/16. Para siguiente hito aplicar plan actualizado de secciones 3 y 4; nunca conectar OE a GND con 3.3 V fijo presente.
 
 **Alcance:** ningun servo ha sido movido. No ejecutar Home/Saludo/Rutina aun con los seis acoplados y sin calibrar.
 
@@ -131,6 +143,6 @@ TODOS DESHABILITADOS: SI
 
 El usuario confirmo con transcripcion de SSH que `git checkout -b feat/jetson-oe-interlock-20261031 --track origin/feat/jetson-oe-interlock-20261031` funciono en la Jetson. El comando `git status -sb` devolvio `## feat/jetson-oe-interlock-20261031...origin/feat/jetson-oe-interlock-20261031`. No repetir el `checkout -b` porque la rama local ya existe.
 
-El ultimo texto de terminal del Mac termina en `quote>`; esto indica una **comilla de shell sin cerrar**, no fallo de I2C. Salir con `Control+C` y recuperar el prompt `%` antes de continuar. Todavia no se ha ejecutado ni compartido salida de `stage-garra-1500`; sigue pendiente y solo se puede ejecutar tras confirmar STOP y OE fisicos.
+El ultimo texto de terminal del Mac termina en `quote>`; esto indica una **comilla de shell sin cerrar**, no fallo de I2C. Salir con `Control+C` y recuperar el prompt `%` antes de continuar. `stage-garra-1500` ya fue ejecutado y confirmado posteriormente; ver bitacora y solo se puede ejecutar tras confirmar STOP y OE fisicos.
 
 El registro paso a paso y estado pendiente se conserva en [13-bitacora-pruebas-jetson-pca9685.md](13-bitacora-pruebas-jetson-pca9685.md).
