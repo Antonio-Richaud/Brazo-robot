@@ -1,8 +1,11 @@
 """Pruebas sin dispositivo fisico, compatibles con Python 3.6."""
 
+import io
 import os
 import sys
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -16,6 +19,7 @@ from pca9685_safe import (  # noqa: E402
     SafePCA9685,
     I2CToolsBus,
     channel_off_high_register,
+    main,
 )
 
 
@@ -99,6 +103,63 @@ class SafePCA9685Tests(unittest.TestCase):
         self.assertFalse(hasattr(self.controller, "enable"))
         self.assertFalse(hasattr(self.controller, "arm"))
         self.assertFalse(hasattr(self.controller, "set_servo_angle"))
+
+
+    def test_cli_stage_garra_requires_human_confirmation(self):
+        output = io.StringIO()
+        with patch("pca9685_safe.I2CToolsBus", return_value=self.bus):
+            with redirect_stderr(output):
+                with self.assertRaises(SystemExit) as exc:
+                    main(["stage-garra-1500"])
+        self.assertEqual(exc.exception.code, 2)
+        self.assertIn("--confirm-stop-oe", output.getvalue())
+        self.assertEqual(self.bus.writes, [])
+
+    def test_cli_stage_garra_does_not_enable_any_channel(self):
+        output = io.StringIO()
+        with patch("pca9685_safe.I2CToolsBus", return_value=self.bus):
+            with redirect_stdout(output):
+                result = main(["stage-garra-1500", "--confirm-stop-oe"])
+        self.assertEqual(result, 0)
+        self.assertIn("GARRA_STAGE_OK", output.getvalue())
+        self.assertIn("SIN MOVIMIENTO", output.getvalue())
+        self.assertTrue(self.controller.all_channels_off())
+        self.assertEqual(self.bus.regs[0x1C], 0x33)
+        self.assertEqual(self.bus.regs[0x1D], 0x11)
+        self.assertEqual(
+            sorted(set(reg for reg, _ in self.bus.writes)),
+            [0x1A, 0x1B, 0x1C, 0x1D]
+        )
+
+    def test_cli_stage_garra_refuses_wrong_mode_fail_closed(self):
+        self.bus.regs[MODE2] = 0x05
+        output = io.StringIO()
+        with patch("pca9685_safe.I2CToolsBus", return_value=self.bus):
+            with redirect_stderr(output):
+                result = main(["stage-garra-1500", "--confirm-stop-oe"])
+        self.assertEqual(result, 1)
+        self.assertIn("no esperado", output.getvalue())
+        self.assertEqual(self.bus.writes, [(ALL_LED_OFF_H, FULL_OFF)])
+        self.assertTrue(self.controller.all_channels_off())
+
+    def test_cli_stage_garra_refuses_any_enabled_channel_fail_closed(self):
+        self.bus.regs[channel_off_high_register(5)] = 0
+        output = io.StringIO()
+        with patch("pca9685_safe.I2CToolsBus", return_value=self.bus):
+            with redirect_stderr(output):
+                result = main(["stage-garra-1500", "--confirm-stop-oe"])
+        self.assertEqual(result, 1)
+        self.assertEqual(self.bus.writes, [(ALL_LED_OFF_H, FULL_OFF)])
+        self.assertTrue(self.controller.all_channels_off())
+        self.assertIn("habilitado", output.getvalue())
+
+    def test_cli_stage_garra_rejects_wrong_frequency(self):
+        self.bus.regs[PRE_SCALE] = 0x20
+        with patch("pca9685_safe.I2CToolsBus", return_value=self.bus):
+            with redirect_stderr(io.StringIO()):
+                result = main(["stage-garra-1500", "--confirm-stop-oe"])
+        self.assertEqual(result, 1)
+        self.assertTrue(self.controller.all_channels_off())
 
 
 if __name__ == "__main__":
