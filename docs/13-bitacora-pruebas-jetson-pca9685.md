@@ -96,3 +96,14 @@ El usuario confirmo expresamente: **«Listo 0E desconectado de 3.3 v»**. Se reg
 **Siguiente comprobacion unica:** dejar fuente de servos cortada mediante STOP y desconectada de AC; no conectar ninguna resistencia ni GPIO a OE; encender solo Jetson para alimentar VCC logico y medir con multimetro en voltaje DC entre `OE` (punta roja) y `GND` (punta negra) en la placa, evitando puentes accidentales. Se espera cercano a **0 V** si el pull-down de la placa es eficaz. Si no es cercano a 0 V, es fluctuante o la medicion es insegura, detenerse; no energizar la fuente de servos. Aun con OE LOW, las señales del PCA9685 podrian habilitarse segun registros, de modo que **STOP permanece activado durante todo el arranque y preflight**.
 
 **Pendiente tras medicion confirmada:** actualizar rama en Jetson, correr `garra_pulso_laboratorio.py preflight` con STOP activo y comprobar los 16 FULL OFF; solo despues decidir prueba fisica puntual supervisada.
+
+
+## Hito reportado: lectura de OE aproximadamente 0 V (2 de noviembre de 2026)
+
+Tras las instrucciones de medir la tension entre **OE (punta roja)** y **GND (punta negra)** de la placa PCA9685 con la Jetson encendida y la fuente de servos apagada, el usuario respondio textualmente: **«0 no marca gnd»**. Se interpreta provisionalmente como **lectura de 0 V** en el multimetro, no como una prueba de continuidad ni una lectura de etiqueta GND.
+
+**Resultado:** nivel OE cercano a 0 V **reportado por el usuario**; compatible con el pull-down de la placa tras retirar el jumper OE→3.3 V. La lectura no verifica automaticamente integridad de GND, potencia de servos, corriente, canal habilitado ni seguridad de movimiento. Si el usuario quiso decir que NO encontro referencia GND para medir, detenerse y aclarar antes de energizar V+.
+
+**Siguiente paso:** mantener STOP activo, con V+ sin energia; Jetson encendida. Sin tocar cables ni energizar fuente, actualizar rama en Jetson con `git pull --ff-only origin feat/jetson-oe-interlock-20261031` (Git antiguo soporta pull pero no switch) y ejecutar `python3 jetson/garra_pulso_laboratorio.py preflight`. Este comando fuerza FULL OFF 16/16, configura frecuencia si es necesario y prepara pulso enmascarado del canal 5; NO habilita PWM ni mueve servos.
+
+**Criterios:** `PREFLIGHT_OK`, `FULL OFF 16/16`; si falla, no activar potencia. El movimiento (`pulse`) permanece PENDIENTE, requiere supervision y STOP al alcance.
