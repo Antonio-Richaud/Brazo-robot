@@ -221,3 +221,14 @@ El usuario confirma que **ya identifico cual terminal es emisor, base y colector
 Levantar inventario de **resistencias disponibles y sus valores**, protoboard, jumpers y multimetro. Valores **candidatos de estudio, NO autorizados para montar aun**: 1 kOhm para pull-up de OE (sujeto a caracterizacion de pull-down de placa y VIH), 4.7 kOhm para la base y 47 kOhm para pull-down de base; deben revisarse mediante calculo/medicion y complementarse con el interlock independiente. Si se desconoce el inventario, pedir foto o codigo de colores de las resistencias.
 
 **Prohibicion vigente:** NO conectar ni retirar OE de J6 pin fisico 17 (3.3 V) con algun equipo energizado, NO conectar un GPIO activo a esa conexion, NO habilitar PWM fisico, NO mover el brazo. No presumir que los rangos logicos documentados son posiciones calibradas del mecanismo.
+
+
+## 12. Ruta alternativa de prueba directa sin transistores (2 de noviembre de 2026)
+
+**Nueva preferencia del usuario:** «mi RECOEMECNADACION ES QUE YA DE UNA VEZ LE MANDEMOS LAS señales apra que eno neceitmeos ningun circuito adicional». Para **una prueba manual supervisada del canal 5 de la garra**, es posible prescindir inicialmente del 2N2222 y manejar la placa por I2C directamente; se conserva este plan con transistor/watchdog como ruta a largo plazo.
+
+**Avance implementado en la rama:** `jetson/pca9685_safe.py` incorpora la accion `stage-garra-1500 --confirm-stop-oe`: programa 1500 microsegundos en registros del canal 5 **enmascarados por FULL OFF**, valida FULL OFF 16/16 y nunca cambia OE ni habilita PWM. Es una escritura I2C real, **no movimiento**; las pruebas `jetson/tests/test_pca9685_safe.py` cubren rechazo y modo seguro.
+
+El primer movimiento real exigiria modificar posteriormente la conexion de OE (hoy fija HIGH en pin17) para gobernarla desde un GPIO de 3.3 V identificado, nunca ambos a la vez, con Jetson y fuente completamente apagadas. Con GPIO directo sin watchdog el estado durante boot/crash puede permitir salidas: **NO autoriza autonomia, control sin supervisión, ni presupone fallo seguro**. El STOP fisico permanece activo en la fase de programacion y accesible durante futuras pruebas.
+
+**Procedimiento y condiciones de la ruta sin transistor:** [12-prueba-directa-pca9685-sin-transistor.md](12-prueba-directa-pca9685-sin-transistor.md). No instalar el 2N2222 por ahora ni modificar los seis conectores de servos.
