@@ -212,3 +212,14 @@ npm run build
 - [Bitácora de instalación de NVIDIA Jetson Nano (26-10-2026)](docs/06-bitacora-instalacion-jetson-nano.md)
 - [Estado, decisiones y continuidad del proyecto](docs/07-estado-y-continuidad-del-proyecto.md)
 - [Jetson ↔ PCA9685: cableado J6, 50 Hz y FULL OFF](docs/08-jetson-pca9685-i2c-pruebas.md)
+
+
+**Primer pulso fisico experimental (SIN transistor, NO ejecutado todavia):**
+`jetson/garra_pulso_laboratorio.py` incluye `preflight` (FULL OFF 16/16)
+y `pulse --confirm-oe-low --confirm-stop-ready` (solo canal5, 1500 us,
+250 ms, FULL OFF al terminar). La ruta propuesta evita un GPIO directo
+sobre OE porque J6 usa TXB0108 y la placa PCA9685 tiene pull-down.
+**Solo tras retirar OE de J6 pin17 con equipos apagados, verificar OE
+~0 V, mantener STOP durante arranque/preflight, y operar supervisado.**
+Ver [protocolo](docs/12-prueba-directa-pca9685-sin-transistor.md) y
+[bitacora](docs/13-bitacora-pruebas-jetson-pca9685.md).
