@@ -85,3 +85,14 @@ Tras comprobar el hito `GARRA_STAGE_OK`, se investigo el hardware de Jetson Nano
 El primer movimiento real no depende de un transistor, pero requerira **con equipos apagados** retirar SOLO el jumper actual de OE a J6 pin17 3.3V; verificar con multimetro que OE queda cerca de 0 V gracias al pull-down de la placa, STOP de potencia activado durante boot/preflight, y luego operar manualmente con paro fisico accesible. No existe control fail-safe por software y no esta autorizada una rutina completa automatica.
 
 **Referencias y procedimiento actualizados:** [docs/12-prueba-directa-pca9685-sin-transistor.md](12-prueba-directa-pca9685-sin-transistor.md). Estado: codigo en rama, hardware OE aun no modificado; primera prueba fisica PENDIENTE.
+
+
+## Hito reportado: OE separado de 3.3 V (2 de noviembre de 2026)
+
+El usuario confirmo expresamente: **«Listo 0E desconectado de 3.3 v»**. Se registra que, segun reporte del usuario, el jumper que conectaba `OE` del PCA9685 a J6 pin fisico 17 (3.3 V fijo) ya fue retirado.
+
+**No comprobado:** estado actual de apagado de Jetson, ausencia de 5 V en V+, nivel electrico real de OE, pull-down efectivo de la placa, primer movimiento fisico o frecuencia del modulo tras reinicio. No inferir esos datos de la confirmacion de retiro de cable.
+
+**Siguiente comprobacion unica:** dejar fuente de servos cortada mediante STOP y desconectada de AC; no conectar ninguna resistencia ni GPIO a OE; encender solo Jetson para alimentar VCC logico y medir con multimetro en voltaje DC entre `OE` (punta roja) y `GND` (punta negra) en la placa, evitando puentes accidentales. Se espera cercano a **0 V** si el pull-down de la placa es eficaz. Si no es cercano a 0 V, es fluctuante o la medicion es insegura, detenerse; no energizar la fuente de servos. Aun con OE LOW, las señales del PCA9685 podrian habilitarse segun registros, de modo que **STOP permanece activado durante todo el arranque y preflight**.
+
+**Pendiente tras medicion confirmada:** actualizar rama en Jetson, correr `garra_pulso_laboratorio.py preflight` con STOP activo y comprobar los 16 FULL OFF; solo despues decidir prueba fisica puntual supervisada.
