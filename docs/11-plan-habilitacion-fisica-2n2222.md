@@ -202,3 +202,22 @@ El usuario envio **cuatro fotografias de uno de sus transistores** y confirmo: �
 **Paso propuesto 11.2 (sin cables de Jetson):** una pieza desconectada, multimetro en modo prueba de diodos; identificar el terminal de base NPN encontrando ~0.5-0.8 V desde punta roja en base hacia cada una de las otras dos patillas con punta negra, y lectura OL al invertir polaridad. Anotar combinaciones y luego contrastar colector/emisor con muesca y/o diagrama del fabricante exacto; **el modo diodo por si solo no determina siempre de forma fiable que patilla es C frente a E**. No hacer prueba en un circuito energizado. Si no hay dos lecturas directas de diodo, no usar esa unidad.
 
 **Inventario para el circuito:** reservar 1 unidad 2N2222A TO-18 para el futuro sink OE, 3 unidades de repuesto; las resistencias, componentes de watchdog independiente y montaje final siguen por identificar. El resto de requisitos del plan siguen vigentes: NO cambiar el enlace directo OE–3.3 V todavía, NO conectar GPIO directo y NO habilitar servos.
+
+
+## 11. Paso 11.2 informado: terminales identificados por el usuario (2 de noviembre de 2026)
+
+El usuario confirma que **ya identifico cual terminal es emisor, base y colector** de su transistor metalico TO-18. No proporciono lecturas numericas de multimetro ni dibujo orientado; registrar como confirmacion del usuario, **sin inferir orientacion fisica propia ni dar por verificado el pinout de fabricante**.
+
+### Proposito del 2N2222 en el proyecto
+
+- Un 2N2222 (NPN) se utilizara exclusivamente para **hundir a GND el pin OE** del PCA9685 mediante una etapa de colector abierto, y solo cuando una logica de permiso adecuadamente supervisada lo autorice; nunca para conducir potencia de los servos.
+- Con el transistor **cortado**, un pull-up externo bien dimensionado mantiene `OE` cerca de 3.3 V, inhibiendo las salidas incluso si Jetson.GPIO no configura una salida. El pull-down de la placa debe verificarse para que el nivel HIGH sea valido.
+- Con el transistor en conduccion, OE podria estar LOW, pero **solo** se habilitarian los canales que no esten en FULL OFF; el primer candidato es canal 5 de garra, sin permiso sobre los demas.
+- **No basta con un GPIO + 2N2222** para cubrir congelacion del sistema: se mantiene como requisito un watchdog/interlock de hardware independiente para impedir habilitacion prolongada en ausencia de heartbeat.
+- La fuente de potencia de servos se sigue cortando con el STOP fisico independiente en el lado de entrada AC; no sustituirlo por el transistor.
+
+### Siguiente comprobacion (sin modificar cableado)
+
+Levantar inventario de **resistencias disponibles y sus valores**, protoboard, jumpers y multimetro. Valores **candidatos de estudio, NO autorizados para montar aun**: 1 kOhm para pull-up de OE (sujeto a caracterizacion de pull-down de placa y VIH), 4.7 kOhm para la base y 47 kOhm para pull-down de base; deben revisarse mediante calculo/medicion y complementarse con el interlock independiente. Si se desconoce el inventario, pedir foto o codigo de colores de las resistencias.
+
+**Prohibicion vigente:** NO conectar ni retirar OE de J6 pin fisico 17 (3.3 V) con algun equipo energizado, NO conectar un GPIO activo a esa conexion, NO habilitar PWM fisico, NO mover el brazo. No presumir que los rangos logicos documentados son posiciones calibradas del mecanismo.
