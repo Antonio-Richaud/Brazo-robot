@@ -62,6 +62,16 @@ Bitacora de potencia, mediciones y STOP:
 
 Apagado seguro: activar STOP de potencia antes de apagar Jetson;
 desde Mac `ssh -t antonio@jetson-nano.local 'sudo shutdown -h now'`.
+
+**Ruta experimental de prueba directa (2-11-2026):** la Jetson puede escribir
+registros PCA9685 por I2C sin transistor. En la rama de integración
+`feat/jetson-oe-interlock-20261031` se añadió
+`jetson/pca9685_safe.py stage-garra-1500 --confirm-stop-oe` para preparar
+**solo el canal 5 en FULL OFF**, sin dar movimiento.
+[Protocolo y restricciones](docs/12-prueba-directa-pca9685-sin-transistor.md).
+OE sigue HIGH en pin fijo 17, y NO hay prueba física de servo ni control
+apto para operaciones desatendidas.
+
 ## Arquitectura
 
 ```mermaid
