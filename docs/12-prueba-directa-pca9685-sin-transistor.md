@@ -71,3 +71,29 @@ Posible ruta *únicamente supervisada*, después de la prueba anterior y nueva r
 - [PCA9685 - NXP (datasheet, control OE y registro FULL OFF)](https://www.nxp.com/docs/en/data-sheet/PCA9685.pdf).
 - [Adafruit PCA9685 - Pinouts (OE pulled LOW por defecto)](https://learn.adafruit.com/16-channel-pwm-servo-driver/pinouts).
 - [Jetson Nano 2GB developer kit user guide - J6 / GPIO 3.3 V](https://developer.nvidia.com/embedded/learn/jetson-nano-2gb-devkit-user-guide).
+
+
+## 6. Estado real detectado en nuevo arranque: MODE1 SLEEP y prescale default (2 de noviembre de 2026)
+
+El usuario ejecuto desde Mac `python3 jetson/pca9685_safe.py disable-all && python3 jetson/pca9685_safe.py status` en Jetson; **salida reportada real**: `MODE1=0x11` (SLEEP), `MODE2=0x04`, `PRE_SCALE=0x1e` (~197 Hz con oscilador nominal) y `FULL OFF 16/16` despues de aplicar `disable-all` y de repetir `status`. El usuario indico mas tarde que encendio la fuente de servos; **no se ha autorizado ni ejecutado movimiento**.
+
+En esa configuracion el chip no esta despierto para generar el pulso de servo; ademas `OE` sigue unido fisicamente a 3.3 V y FULL OFF en todos los canales, por lo que **ningun comando de movimiento desde Jetson puede mover ahora los servos**. NXP especifica que PRE_SCALE solo se escribe con MODE1.SLEEP=1. La frecuencia objetivo sera ~50 Hz, `PRE_SCALE=0x79`, `MODE1=0x01`, manteniendo FULL OFF y OE HIGH.
+
+**Unico paso inmediato:** Accionar STOP para cortar V+ de servos antes de configurar frecuencia, mantener la Jetson encendida y OE a 3.3 V, ejecutar desde Mac:
+
+```bash
+ssh -T -o ConnectTimeout=10 antonio@jetson-nano.local '
+set -e
+cd "$HOME/robot-lab/Brazo-robot"
+python3 jetson/pca9685_safe.py disable-all
+i2cset -y 1 0x40 0x00 0x11 b
+i2cset -y 1 0x40 0xFE 0x79 b
+i2cset -y 1 0x40 0x00 0x01 b
+sleep 0.02
+python3 jetson/pca9685_safe.py status
+'
+```
+
+**Criterio de exito:** `MODE1: 0x01`, `MODE2: 0x04`, `PRE_SCALE: 0x79`, `FULL OFF 16/16`, `TODOS DESHABILITADOS: SI`. Si falla, conservar STOP y no mover. Esta secuencia **NO habilita PWM y NO mueve servos**. No conectar OE a GND ni a un GPIO mientras sigue unido directamente al pin 17 de 3.3 V.
+
+**Siguiente fase:** probar el comando `stage-garra-1500` con STOP activo y OE HIGH despues de actualizar la rama; despues abordar el pin OE y calibracion mecanica antes del primer movimiento fisico. No ejecutar rutinas completas Home/Saludo/Rutina. Requiere supervision, y sin interlock de hardware no es un sistema fail-safe para operacion automatica.
