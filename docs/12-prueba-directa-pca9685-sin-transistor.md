@@ -97,3 +97,31 @@ python3 jetson/pca9685_safe.py status
 **Criterio de exito:** `MODE1: 0x01`, `MODE2: 0x04`, `PRE_SCALE: 0x79`, `FULL OFF 16/16`, `TODOS DESHABILITADOS: SI`. Si falla, conservar STOP y no mover. Esta secuencia **NO habilita PWM y NO mueve servos**. No conectar OE a GND ni a un GPIO mientras sigue unido directamente al pin 17 de 3.3 V.
 
 **Siguiente fase:** probar el comando `stage-garra-1500` con STOP activo y OE HIGH despues de actualizar la rama; despues abordar el pin OE y calibracion mecanica antes del primer movimiento fisico. No ejecutar rutinas completas Home/Saludo/Rutina. Requiere supervision, y sin interlock de hardware no es un sistema fail-safe para operacion automatica.
+
+
+## 7. Paso 12.1 comprobado: PCA9685 reconfigurado a 50 Hz (2 de noviembre de 2026)
+
+El usuario compartio la salida real del comando ejecutado por SSH en la Jetson:
+
+```text
+FULL OFF aplicado y comprobado en los 16 canales
+MODE1: 0x11
+MODE2: 0x04
+PRE_SCALE: 0x1e
+Canales FULL OFF: 16/16
+TODOS DESHABILITADOS: SI
+
+[i2cset MODE1 0x11; PRE_SCALE 0x79; MODE1 0x01; sleep 0.02]
+
+MODE1: 0x01
+MODE2: 0x04
+PRE_SCALE: 0x79
+Canales FULL OFF: 16/16
+TODOS DESHABILITADOS: SI
+```
+
+**Interpretacion:** se escribieron y verificaron exitosamente los registros del PCA9685 para salir de SLEEP y fijar el divisor nominal de ~50 Hz. Los 16 canales permanecieron en FULL OFF despues de modificar frecuencia. Estos datos son lecturas de registros, no medicion instrumental de frecuencia PWM ni confirmacion de estado electrico de OE, que solo se valido antes por el usuario.
+
+**Siguiente paso 12.2:** con el STOP activado (sin energia en V+ de motores), Jetson encendida y OE conectado fisicamente a J6 pin17 3.3 V, sincronizar la rama `feat/jetson-oe-interlock-20261031` en la Jetson y ejecutar `stage-garra-1500 --confirm-stop-oe`. Este paso escribira registros de pulso enmascarado para canal 5 sin habilitar salidas; verificar que FULL OFF siga 16/16. Si la rama o test falla, detenerse; no conectar OE a GND ni habilitar motores.
+
+**Alcance:** ningun servo ha sido movido. No ejecutar Home/Saludo/Rutina aun con los seis acoplados y sin calibrar.
