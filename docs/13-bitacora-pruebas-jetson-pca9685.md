@@ -24,6 +24,7 @@
 | Cambio de rama en Jetson (intento 1) | `git switch` | No disponible en Git instalado en Jetson. No se ejecutó `stage-garra-1500` |
 | Cambio de rama en Jetson (intento 2) | `git checkout -b feat/jetson-oe-interlock-20261031 --track origin/feat/jetson-oe-interlock-20261031`; `git status -sb` | **Correcto:** rama creada, configurada para seguimiento remoto, `## feat/jetson-oe-interlock-20261031...origin/feat/jetson-oe-interlock-20261031` sin cambios listados |
 | Última salida de terminal Mac | Después de copiar una transcripción con el prompt duplicado: `quote>` | **No es un error de la Jetson.** La shell de Mac está esperando cierre de comilla. Salir con `Control+C`; no ejecutar `git checkout -b` otra vez |
+| Prueba de registros de garra (2 de noviembre 2026) | `stage-garra-1500 --confirm-stop-oe` más `status` ejecutados en Jetson | **CORRECTO:** `GARRA_STAGE_OK: canal 5, 1500 us (307 cuentas)`, `FULL OFF 16/16`, `MODE1=0x01`, `MODE2=0x04`, `PRE_SCALE=0x79`. No se habilitaron salidas ni se confirmó movimiento físico |
 
 ## Próximo paso pendiente: prueba I2C de garra enmascarada
 
@@ -38,7 +39,7 @@ ssh -T -o ConnectTimeout=10 antonio@jetson-nano.local 'cd "$HOME/robot-lab/Brazo
 
 3. Verificar en la salida `GARRA_STAGE_OK`, `SIN MOVIMIENTO`, `FULL OFF 16/16` y `TODOS DESHABILITADOS: SI`.
 
-**Estado actual del paso:** `PENDIENTE`; el usuario aún **no ha compartido** la salida de `stage-garra-1500`.
+**Estado del paso:** `APROBADO` el 2 de noviembre de 2026; ver evidencia verificada al final de este documento. **Movimiento físico:** pendiente.
 
 ## Prohibiciones y límites durante esta etapa
 
@@ -52,3 +53,25 @@ ssh -T -o ConnectTimeout=10 antonio@jetson-nano.local 'cd "$HOME/robot-lab/Brazo
 ## Criterio para marcar nuevos hitos
 
 Incluir siempre fecha, comando exacto, salida relevante, estado del STOP/OE informado, interpretación y pendientes. No afirmar que pruebas en mocks, CI o lecturas de registros equivalen a movimiento.
+
+## Hito validado: pulso de garra preparado sin habilitar PWM (2 de noviembre de 2026)
+
+El usuario reporto la salida real desde su Mac de la ejecucion remota en Jetson Nano:
+
+```text
+GARRA_STAGE_OK: canal 5, 1500 us (307 cuentas)
+SIN MOVIMIENTO: FULL OFF 16/16 y OE HIGH externo
+MODE1: 0x01
+MODE2: 0x04
+PRE_SCALE: 0x79
+Canales FULL OFF: 16/16
+TODOS DESHABILITADOS: SI
+```
+
+Se ejecuto otro `status` al final que repitio `MODE1=0x01`, `MODE2=0x04`, `PRE_SCALE=0x79`, `FULL OFF 16/16`. No hay errores I2C en salida.
+
+**Interpretacion:** el software preparo exitosamente la duracion de pulso de 1500 us (307 cuentas del PCA9685) sobre los registros del canal 5 de garra y mantuvo TODOS los canales inhibidos. El programa NO comprobo fisicamente OE; su mensaje 'OE HIGH externo' depende de cableado previamente reportado (pin J6 17 de 3.3 V), y el flag `--confirm-stop-oe` depende de la confirmacion del usuario. No se midio PWM con osciloscopio ni movimiento ni posicion de servo.
+
+**Siguiente fase:** antes del movimiento real, establecer control fisico seguro de OE (hoy atado a 3.3 V constante), implementar movimiento de un solo eje en codigo con estado inicial controlado, aislamiento `FULL OFF` de canales 0-4 y 6-15, tiempo limitado, corte logico de salida y STOP de potencia accesible. Evitar que `OE` flote durante arranque, apagar primero potencia ante fallos y NO probar Home/Saludo/Rutina completos con 6 servos acoplados sin calibracion.
+
+**Estado de hito:** APROBADO (programacion I2C enmascarada); **primer movimiento fisico:** PENDIENTE. **Estado actual del STOP:** no inferible de la salida.
