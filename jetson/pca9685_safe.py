@@ -4,10 +4,12 @@
 Compatible con Python 3.6 y con i2c-tools de JetPack 4.6.1.
 NO tiene ninguna funcion para habilitar canales o mover motores.
 
-Conexiones logicas previstas: J6 pin 1 -> VCC 3.3 V,
-J6 pin 3 -> SDA, J6 pin 5 -> SCL, J6 pin 6 -> GND,
-J6 pin 17 -> OE 3.3 V (salidas inhibidas).
-Mantener V+ (alimentacion de motores) desconectado.
+Conexiones logicas: J6 pin 1 -> VCC 3.3 V,
+J6 pin 3 -> SDA, J6 pin 5 -> SCL, J6 pin 6 -> GND.
+OE inicialmente conectado a J6 pin17 (3.3 V, PWM inhibido).
+En la prueba experimental posterior OE fue separado de pin17 y
+reportado LOW; esta herramienta NO mide ni cambia OE.
+Mantener STOP de potencia activado durante cualquier prueba de registros.
 """
 
 import argparse
@@ -48,14 +50,27 @@ class I2CToolsBus(object):
 
     @staticmethod
     def _run(argv):
-        result = subprocess.run(
-            argv,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True,
-            timeout=5,
-            check=True,
-        )
+        try:
+            result = subprocess.run(
+                argv,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
+                timeout=5,
+                check=True,
+            )
+        except subprocess.CalledProcessError as exc:
+            # Mostrar la causa real emitida por i2c-tools en lugar de
+            # perder stderr en un traceback de CalledProcessError.
+            details = (exc.stderr or "").strip()
+            if not details:
+                details = "i2c-tools no devolvio un diagnostico por stderr"
+            raise RuntimeError(
+                "Fallo de comunicacion I2C: {} (salida {}). {}".format(
+                    " ".join(argv), exc.returncode, details))
+        except subprocess.TimeoutExpired:
+            raise RuntimeError(
+                "Tiempo de espera I2C agotado: {}".format(" ".join(argv)))
         return result.stdout.strip()
 
     @staticmethod
@@ -83,8 +98,8 @@ class I2CToolsBus(object):
 class SafePCA9685(object):
     """Inspecciona y permite aplicar FULL OFF, pero JAMAS armar salidas.
 
-    Importante: por I2C no se puede comprobar si OE esta realmente en alto.
-    OE debe mantenerse unido fisicamente a VCC de 3.3 V en esta fase.
+    Importante: OE no es verificable por I2C y cambia segun fase
+    experimental. No confiar en registros como sustituto de STOP.
     """
 
     def __init__(self, bus):
@@ -121,7 +136,8 @@ class SafePCA9685(object):
     def stage_disabled_pulse(self, channel, pulse_us):
         """Escribe un pulso ENMASCARADO por FULL OFF; nunca lo habilita.
 
-        Intencionadamente no se expone como accion del CLI en esta fase.
+        Se expone en CLI solo para garra/canal 5, pulso 1500 us y
+        confirmacion humana de STOP + OE HIGH.
         Limitado a los seis canales del brazo, 1000..2000 us de laboratorio.
         Estos valores no implican calibracion ni son un rango seguro de servo.
         """
@@ -159,7 +175,7 @@ def print_snapshot(snapshot):
     print("TODOS DESHABILITADOS: {}".format(
         "SI" if snapshot["all_off"] else "NO - NO ENERGIZAR SERVOS"
     ))
-    print("OE: NO verificable por I2C; mantener OE -> 3.3 V")
+    print("OE: NO verificable por I2C; comprobar cableado segun protocolo")
     print("IMPORTANTE: FULL OFF no reemplaza un corte fisico de potencia")
 
 
@@ -168,21 +184,56 @@ def main(argv=None):
         description="Diagnostico seguro del PCA9685 Jetson sin habilitar servos"
     )
     parser.add_argument(
-        "action", nargs="?", choices=("status", "disable-all"),
-        default="status", help="status no escribe registros; disable-all solo apaga"
+        "action", nargs="?", choices=("status", "disable-all", "stage-garra-1500"),
+        default="status", help="stage-garra-1500 escribe registros, NO habilita PWM"
+    )
+    parser.add_argument(
+        "--confirm-stop-oe", action="store_true",
+        help="Confirma STOP fisico ACTIVADO y OE conectado a 3.3 V"
     )
     args = parser.parse_args(argv)
+    if args.action == "stage-garra-1500" and not args.confirm_stop_oe:
+        parser.error("stage-garra-1500 requiere --confirm-stop-oe")
+
+    controller = None
     try:
         controller = SafePCA9685(I2CToolsBus())
         if args.action == "disable-all":
             controller.disable_all()
             print("FULL OFF aplicado y comprobado en los 16 canales")
+        if args.action == "stage-garra-1500":
+            # Seguridad: antes de cualquier escritura, validar modo y TODOS
+            # los canales inhibidos. OE HIGH se verifica externamente.
+            previous = controller.inspect()
+            if previous["mode1"] & 0x10 or previous["mode2"] != 0x04:
+                raise RuntimeError("Modo PCA9685 no esperado; NO preparar garra")
+            if previous["pre_scale"] != EXPECTED_PRE_SCALE:
+                raise RuntimeError("Frecuencia PCA9685 no esperada")
+            if not previous["all_off"]:
+                raise RuntimeError("No se preparara PWM con un canal habilitado")
+
+            count = controller.stage_disabled_pulse(5, 1500)
+            if not controller.all_channels_off():
+                raise RuntimeError("FULL OFF perdido despues de preparar garra")
+            # Confirmar que el unico pulso previsto esta enmascarado.
+            if controller.bus.read_reg(channel_off_high_register(5)) != (
+                    FULL_OFF | ((count >> 8) & 0x0F)):
+                raise RuntimeError("Garra: lectura de registro OFF_H inesperada")
+            print("GARRA_STAGE_OK: canal 5, 1500 us ({} cuentas)".format(count))
+            print("SIN MOVIMIENTO: FULL OFF 16/16 y OE HIGH externo")
         snapshot = controller.inspect()
         print_snapshot(snapshot)
         return 0 if snapshot["all_off"] else 2
     except (ValueError, OSError, RuntimeError, subprocess.SubprocessError) as exc:
+        if controller is not None and args.action == "stage-garra-1500":
+            try:
+                controller.disable_all()
+            except (ValueError, OSError, RuntimeError,
+                    subprocess.SubprocessError) as backup_exc:
+                print("ALERTA: no se pudo asegurar FULL OFF: {}".format(
+                    backup_exc), file=sys.stderr)
         print("ERROR I2C: {}".format(exc), file=sys.stderr)
-        print("Mantener desconectada la fuente de servos y OE en 3.3 V", file=sys.stderr)
+        print("CONSERVAR STOP fisico activo y verificar I2C antes de potencia", file=sys.stderr)
         return 1
 
 

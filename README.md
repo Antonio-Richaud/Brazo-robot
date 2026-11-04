@@ -62,6 +62,16 @@ Bitacora de potencia, mediciones y STOP:
 
 Apagado seguro: activar STOP de potencia antes de apagar Jetson;
 desde Mac `ssh -t antonio@jetson-nano.local 'sudo shutdown -h now'`.
+
+**Ruta experimental de prueba directa (2-11-2026):** la Jetson puede escribir
+registros PCA9685 por I2C sin transistor. En la rama de integración
+`feat/jetson-oe-interlock-20261031` se añadió
+`jetson/pca9685_safe.py stage-garra-1500 --confirm-stop-oe` para preparar
+**solo el canal 5 en FULL OFF**, sin dar movimiento.
+[Protocolo y restricciones](docs/12-prueba-directa-pca9685-sin-transistor.md).
+OE sigue HIGH en pin fijo 17, y NO hay prueba física de servo ni control
+apto para operaciones desatendidas.
+
 ## Arquitectura
 
 ```mermaid
@@ -202,3 +212,14 @@ npm run build
 - [Bitácora de instalación de NVIDIA Jetson Nano (26-10-2026)](docs/06-bitacora-instalacion-jetson-nano.md)
 - [Estado, decisiones y continuidad del proyecto](docs/07-estado-y-continuidad-del-proyecto.md)
 - [Jetson ↔ PCA9685: cableado J6, 50 Hz y FULL OFF](docs/08-jetson-pca9685-i2c-pruebas.md)
+
+
+**Primer pulso fisico experimental (SIN transistor, NO ejecutado todavia):**
+`jetson/garra_pulso_laboratorio.py` incluye `preflight` (FULL OFF 16/16)
+y `pulse --confirm-oe-low --confirm-stop-ready` (solo canal5, 1500 us,
+250 ms, FULL OFF al terminar). La ruta propuesta evita un GPIO directo
+sobre OE porque J6 usa TXB0108 y la placa PCA9685 tiene pull-down.
+**Solo tras retirar OE de J6 pin17 con equipos apagados, verificar OE
+~0 V, mantener STOP durante arranque/preflight, y operar supervisado.**
+Ver [protocolo](docs/12-prueba-directa-pca9685-sin-transistor.md) y
+[bitacora](docs/13-bitacora-pruebas-jetson-pca9685.md).

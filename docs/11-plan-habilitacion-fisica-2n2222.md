@@ -173,3 +173,62 @@ Esperar cierre de SSH y apagado de Jetson; desconectar su eliminador solo cuando
 - Registro de fuente, mediciones, STOP y foto: [10-seguridad-fuente-servos-5v-10a.md](10-seguridad-fuente-servos-5v-10a.md)
 
 **Este documento es un plan de trabajo, no una indicacion de manipular circuitos de red ni de habilitar los servos sin supervision y pruebas.**
+
+
+## 9. Decision de componente: 2N2222 metalico TO-18 (31 de octubre de 2026)
+
+**Decision confirmada por el usuario:** dispone de versiones TO-92 (plasticos) y TO-18 (metalicos, 'de latita') y **prefiere utilizar los TO-18** para el circuito de habilitacion OE. Adoptar **2N2222 / 2N2222A de encapsulado metalico TO-18** como candidato de diseño, en lugar de TO-92, sin alterar los requisitos de watchdog e inhibicion por defecto.
+
+**Referencia de fabricante, NO identificacion de la pieza concreta del usuario:** Philips/NXP describe los 2N2222 y 2N2222A TO-18 con emisor=pin 1, base=pin 2, colector=pin 3 y **carcasa metalica unida al colector**. La numeracion debe orientarse por la muesca y la vista exacta del dibujo del datasheet; no es seguro suponer que la disposicion del plastico TO-92 es igual. Fuente: https://web.stanford.edu/class/ee133/datasheets/2n2222.pdf (Philips Semiconductors, pagina impresa 2, figura 1).
+
+**Implicaciones de diseño:**
+
+- El encapsulado metalico **no se conecta a V+ 5V ni transporta corriente de motores**. El 2N2222 controla solamente el nodo OE de logica 3.3V por medio de un circuito de colector abierto con resistencias, luego de aprobar el esquema.
+- En la version TO-18 de Philips el **colector esta unido a la carcasa**, por lo que la latita puede ser un punto electrico activo; evitar contacto con chasis, GND, disipadores, otras piezas metalicas o conductores sin aislamiento. Confirmar si esto es asi para el fabricante exacto del usuario.
+- **Antes de elegir pines o soldar:** solicitar foto nitida de un transistor real donde se vea el texto grabado en su lata y, de ser posible, una segunda vista de la base con las tres patillas y su muesca. Contrastar la inscripcion con la hoja de datos del mismo fabricante; usar multimetro en modo diodo para corroborar polaridad E/B/C si es necesario.
+- No hacer cambios a OE ni alimentar motores por este cambio de preferencia. La conexion actual OE a J6 pin fisico 17 (3.3V fijo) sigue vigente y debe permanecer sin tocar.
+
+**Siguiente paso practico:** identificar marcaje y muesca del componente exacto; despues dimensionar resistencias y definir el circuito con la red pull-down de OE y un interlock independiente.
+
+
+## 10. Inventario fotografico: cuatro 2N2222A metalicos disponibles (31 de octubre de 2026)
+
+El usuario envio **cuatro fotografias de uno de sus transistores** y confirmo: «Tengo 4 de estos». El componente de las fotos es de encapsulado metalico con tres terminales, formato compatible con TO-18. La inscripcion visible es **compatible con `2N2222A`** (parte de la palabra/modelo se curva alrededor de la lata); se aprecia logotipo circular, pero **el fabricante y lote no pueden verificarse con certeza** por las fotos. El usuario dispone de **4 piezas** de este tipo, no necesariamente cada una caracterizada individualmente.
+
+**Fuente de comparacion**: hoja oficial onsemi 2N2222A (`https://www.onsemi.com/download/data-sheet/pdf/2n2222a-d.pdf`), paquete TO-18 / CASE 206AA / STYLE 1. Dibujo visto desde abajo con muesca de orientacion y pines `1=emisor`, `2=base`, `3=colector`; NXP/Philips documenta para su version que la carcasa metalica esta unida al colector (`https://web.stanford.edu/class/ee133/datasheets/2n2222.pdf`). El dibujo es **referencia de un fabricante y no identifica por si solo el pinout exacto de la pieza fotografiada**.
+
+**No se ve de frente la cara inferior de la lata ni la muesca de alineacion con suficiente claridad**; no asignar a las patillas de la imagen C/B/E por su ubicacion aparente. Preferir prueba externa del componente suelto en modo diodo de multimetro, antes de introducirlo en protoboard o soldarlo, especialmente por la posibilidad de que la carcasa sea colector.
+
+**Paso propuesto 11.2 (sin cables de Jetson):** una pieza desconectada, multimetro en modo prueba de diodos; identificar el terminal de base NPN encontrando ~0.5-0.8 V desde punta roja en base hacia cada una de las otras dos patillas con punta negra, y lectura OL al invertir polaridad. Anotar combinaciones y luego contrastar colector/emisor con muesca y/o diagrama del fabricante exacto; **el modo diodo por si solo no determina siempre de forma fiable que patilla es C frente a E**. No hacer prueba en un circuito energizado. Si no hay dos lecturas directas de diodo, no usar esa unidad.
+
+**Inventario para el circuito:** reservar 1 unidad 2N2222A TO-18 para el futuro sink OE, 3 unidades de repuesto; las resistencias, componentes de watchdog independiente y montaje final siguen por identificar. El resto de requisitos del plan siguen vigentes: NO cambiar el enlace directo OE–3.3 V todavía, NO conectar GPIO directo y NO habilitar servos.
+
+
+## 11. Paso 11.2 informado: terminales identificados por el usuario (2 de noviembre de 2026)
+
+El usuario confirma que **ya identifico cual terminal es emisor, base y colector** de su transistor metalico TO-18. No proporciono lecturas numericas de multimetro ni dibujo orientado; registrar como confirmacion del usuario, **sin inferir orientacion fisica propia ni dar por verificado el pinout de fabricante**.
+
+### Proposito del 2N2222 en el proyecto
+
+- Un 2N2222 (NPN) se utilizara exclusivamente para **hundir a GND el pin OE** del PCA9685 mediante una etapa de colector abierto, y solo cuando una logica de permiso adecuadamente supervisada lo autorice; nunca para conducir potencia de los servos.
+- Con el transistor **cortado**, un pull-up externo bien dimensionado mantiene `OE` cerca de 3.3 V, inhibiendo las salidas incluso si Jetson.GPIO no configura una salida. El pull-down de la placa debe verificarse para que el nivel HIGH sea valido.
+- Con el transistor en conduccion, OE podria estar LOW, pero **solo** se habilitarian los canales que no esten en FULL OFF; el primer candidato es canal 5 de garra, sin permiso sobre los demas.
+- **No basta con un GPIO + 2N2222** para cubrir congelacion del sistema: se mantiene como requisito un watchdog/interlock de hardware independiente para impedir habilitacion prolongada en ausencia de heartbeat.
+- La fuente de potencia de servos se sigue cortando con el STOP fisico independiente en el lado de entrada AC; no sustituirlo por el transistor.
+
+### Siguiente comprobacion (sin modificar cableado)
+
+Levantar inventario de **resistencias disponibles y sus valores**, protoboard, jumpers y multimetro. Valores **candidatos de estudio, NO autorizados para montar aun**: 1 kOhm para pull-up de OE (sujeto a caracterizacion de pull-down de placa y VIH), 4.7 kOhm para la base y 47 kOhm para pull-down de base; deben revisarse mediante calculo/medicion y complementarse con el interlock independiente. Si se desconoce el inventario, pedir foto o codigo de colores de las resistencias.
+
+**Prohibicion vigente:** NO conectar ni retirar OE de J6 pin fisico 17 (3.3 V) con algun equipo energizado, NO conectar un GPIO activo a esa conexion, NO habilitar PWM fisico, NO mover el brazo. No presumir que los rangos logicos documentados son posiciones calibradas del mecanismo.
+
+
+## 12. Ruta alternativa de prueba directa sin transistores (2 de noviembre de 2026)
+
+**Nueva preferencia del usuario:** «mi RECOEMECNADACION ES QUE YA DE UNA VEZ LE MANDEMOS LAS señales apra que eno neceitmeos ningun circuito adicional». Para **una prueba manual supervisada del canal 5 de la garra**, es posible prescindir inicialmente del 2N2222 y manejar la placa por I2C directamente; se conserva este plan con transistor/watchdog como ruta a largo plazo.
+
+**Avance implementado en la rama:** `jetson/pca9685_safe.py` incorpora la accion `stage-garra-1500 --confirm-stop-oe`: programa 1500 microsegundos en registros del canal 5 **enmascarados por FULL OFF**, valida FULL OFF 16/16 y nunca cambia OE ni habilita PWM. Es una escritura I2C real, **no movimiento**; las pruebas `jetson/tests/test_pca9685_safe.py` cubren rechazo y modo seguro.
+
+El primer movimiento real exigiria modificar posteriormente la conexion de OE (hoy fija HIGH en pin17) para gobernarla desde un GPIO de 3.3 V identificado, nunca ambos a la vez, con Jetson y fuente completamente apagadas. Con GPIO directo sin watchdog el estado durante boot/crash puede permitir salidas: **NO autoriza autonomia, control sin supervisión, ni presupone fallo seguro**. El STOP fisico permanece activo en la fase de programacion y accesible durante futuras pruebas.
+
+**Procedimiento y condiciones de la ruta sin transistor:** [12-prueba-directa-pca9685-sin-transistor.md](12-prueba-directa-pca9685-sin-transistor.md). No instalar el 2N2222 por ahora ni modificar los seis conectores de servos.

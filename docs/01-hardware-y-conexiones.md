@@ -20,6 +20,13 @@ de 3.3 V del ESP32.
 
 ## Jetson Nano 2GB + PCA9685 (prueba I²C, sin motores)
 
+> **Estado actual (3 nov 2026):** la tabla de J6 de esta seccion es HISTORICA del 30 oct. 
+> El cable entre J6 pin17 y OE fue RETIRADO por el usuario; OE esta sin jumper 
+> externo. Actualmente PCA9685 **NO responde en 0x40** (`i2cdetect` marca `--`). 
+> La referencia de cableado que corresponde a la fase actual esta en 
+> [14-cableado-correcto-jetson-nano-2gb-pca9685.md](14-cableado-correcto-jetson-nano-2gb-pca9685.md).
+> No energizar potencia de servos ni ejecutar pulsos hasta recuperar I2C.
+
 **Esta conexión es una alternativa experimental al ESP32**, no implica
 que el brazo ya sea controlable desde la Jetson. Se usa el conector
 **J6** de 40 pines físicos de la Jetson Nano 2GB, a nivel lógico de 3.3 V.

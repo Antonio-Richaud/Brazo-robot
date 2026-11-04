@@ -33,6 +33,10 @@ jobs:
       - name: Compile Python sources
         run: python -m compileall -q .
 
+      - name: Run Jetson PCA9685 safe and simulation tests (mock hardware)
+        working-directory: jetson
+        run: python -m unittest discover -s tests -v
+
   frontend:
     name: Frontend lint and build
     runs-on: ubuntu-latest
