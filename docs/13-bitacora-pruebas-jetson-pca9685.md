@@ -159,3 +159,14 @@ Error: Read failed
 Resistencias de pelicula metalica o carbono, 1/4 W, 1% o 5% tolerancia, terminales THT. Las cantidades de 5 son reserva; **no se necesitan 5 por circuito**. Un kit surtido que incluya los cinco valores es adecuado. Especificaciones finales dependen de medir la resistencia a GND del OE de la placa y elegir la etapa de manejo. La Jetson Nano 2GB usa TXB0108 en pines no I2C: Nvidia recomienda pull-up/down externos superiores a 50 kΩ en esos pines, por lo que un transistor/carga de base directo merece un driver/buffer apropiado (o diseno alternativo), no asumir que 4.7k es compatible por si solo. Un 2N2222 **no es** un watchdog ni STOP; si se necesita fail-safe ante congelamiento de Jetson, agregar supervisor hardware independiente.
 
 **Fuentes de dimensionamiento:** PCA9685 NXP datasheet (OE VIH >= 0.7 VDD); Adafruit PCA9685 pinout (OE pulled low by default); NVIDIA Jetson Nano 40-Pin Expansion Header GPIO Usage Considerations (TXB0108).
+
+
+## Diagnostico I2C: VCC logico de 3.3 V confirmado (3 de noviembre de 2026)
+
+Tras registrar fallo de escritura `i2cset ... 0xFD 0x10` y de lectura `i2cget -y 1 0x40 0x00 b` con `Error: Read failed`, se solicito medir tension DC en la placa PCA9685 entre VCC y GND, con Jetson encendida y fuente V+ de servos cortada por STOP.
+
+**Resultado reportado por el usuario:** «Si tengo 3.3v». El pin VCC de la placa dispone por tanto de ~3.3 V respecto a GND segun medicion del usuario. Esto no confirma que SDA/SCL tengan continuidad, que la direccion 0x40 responda o que I2C no este retenido LOW.
+
+**Proxima prueba (sin cableado nuevo, sin energizar V+):** escanear exclusivamente la direccion esperada 0x40 en el bus I2C-1 con `i2cdetect -y -r 1 0x40 0x40`. Si muestra `40`, hay respuesta al sondeo SMBus en esa direccion, pero no garantiza lecturas/escrituras de registros. Si muestra `--` o `Error`, no hay respuesta diagnostica suficiente; inspeccionar conexiones con equipos apagados y, por separado, medir SDA/SCL segun siguientes resultados. El escaneo I2C no escribe PWM pero genera trafico de sondeo; no realizarlo con servos energizados ni tratarlo como operacion de seguridad.
+
+**No ejecutar** `preflight`, `pulse`, `Home`, `Saludo`, `Rutina` ni cambiar OE/3.3 V hasta recuperar I2C y confirmar FULL OFF. STOP sigue activado.
