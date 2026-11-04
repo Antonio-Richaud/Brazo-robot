@@ -186,3 +186,12 @@ ssh -T -o ConnectTimeout=10 antonio@jetson-nano.local 'i2cdetect -y -r 1 0x40 0x
 **Siguiente paso unico recomendado (sin mover ni reconfigurar):** con STOP fisico activado, sin potencia V+ de servos, Jetson encendida, multimetro en V DC medir `SDA` contra `GND` del PCA9685 en estado de reposo, evitando puentear pines con puntas. El bus I2C necesita nivel HIGH por resistencias pull-up durante reposo, tipicamente alrededor de 3.3 V. Lectura sostenida cerca de 0 V apunta a linea retenida LOW o corto; nivel alto no garantiza continuidad I2C. Si resulta incomodo medir pines juntos, detenerse y apagar ambos equipos para inspeccionar continuidad/ubicacion fisica de cables. No permitir `pulse`, `preflight` ni fuente V+ hasta resolver.
 
 **Conexion nominal:** Jetson J6 pin3 = SDA, pin5 = SCL, pin6 = GND, pin1 = VCC 3.3V. OE ya separado de pin17 segun reporte; dejarlo sin reconectar durante diagnostico. La advertencia SSH de intercambio de claves post-cuántico no explica el fallo I2C.
+
+
+## Diagnostico I2C: SDA aparentemente correcta; falta medir SCL (3 de noviembre de 2026)
+
+Tras solicitar la medicion de la linea SDA (punta negra GND, roja SDA) con la Jetson encendida y STOP de servos activo, el usuario respondio: **«Todo parece estar correcto»**. No facilito una lectura numerica ni confirmo expresamente haber medido SDA; se registra como **observacion cualitativa**, NO como valor verificado de SDA≈3.3 V.
+
+La evidencia previa permanece: VCC≈3.3 V reportado; `i2cget -y 1 0x40 0x00 b` devolvio `Error: Read failed`, y `i2cdetect -y -r 1 0x40 0x40` mostro `40: --`. El modulo **aun no responde por I2C**; una linea en HIGH en reposo no demuestra continuidad ni ACK.
+
+**Siguiente comprobacion unica**: mantener STOP activado, fuente V+ de servos desenergizada, Jetson encendida, y medir tension DC de **SCL del PCA9685 respecto a GND**, registrando cifra exacta; normal en reposo cerca de 3.3 V. Evitar puentear pines vecinos con el multimetro. Si SCL es ~3.3 V, seguir diagnosticando continuidad/orden de SDA y SCL con equipos totalmente apagados, sin afirmar que I2C funciona. No ejecutar `preflight`, `pulse`, Home ni rutinas.
