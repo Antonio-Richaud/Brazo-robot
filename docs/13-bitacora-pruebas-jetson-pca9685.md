@@ -131,3 +131,31 @@ ssh -T -o ConnectTimeout=10 antonio@jetson-nano.local 'i2cget -y 1 0x40 0x00 b'
 ```
 
 Lectura MODE1 sin modificar registros. Si devuelve un byte hexadecimal (`0x..`), el chip responde a **esa** lectura; si devuelve error, conservar STOP y revisar alimentacion logica/cables con equipos apagados antes de nuevas operaciones. No iniciar `pulse`, Saludo, Home o Rutina hasta recuperar control de I2C.
+
+
+## Incidencia confirmada: falla de lectura MODE1 y lista de resistencias futura (3 de noviembre de 2026)
+
+El usuario ejecuto en Jetson con SSH:
+
+```text
+i2cget -y 1 0x40 0x00 b
+Error: Read failed
+```
+
+**Interpretacion:** tras el fallo previo de `i2cset 0xFD <- 0x10`, ahora tambien falla la lectura del registro MODE1 0x00. La comunicacion I2C con 0x40 no esta operativa en este momento. No puede atribuirse solo a OE ni al software nuevo; OE controla salidas PWM, no la direccion I2C. El hecho de haber manipulado recientemente el jumper OE obliga a comprobar si se aflojaron VCC, GND, SDA, SCL; tambien verificar bus/placa sin adivinar.
+
+**Accion inmediata:** mantener STOP presionado y fuente V+ sin corriente. Con Jetson encendida y sin manipular cables, medir tension DC entre **VCC y GND del PCA9685**. Esperado aproximadamente 3.3 V. Si es 0 V o fluctua, cortar alimentacion y revisar cableado de 3.3 V y masa con todo apagado. Si es 3.3 V, revisar SDA/SCL/masa e I2C en otro paso. No ejecutar `preflight`, `pulse`, Home, Saludo o Rutina hasta resolver el I2C. No reconectar OE a 3.3 V en caliente para intentar resolverlo.
+
+### Lista de compras PRELIMINAR del circuito con 2N2222 (no instalar aun)
+
+| Resistencia | Cantidad sugerida | Función propuesta | Estado |
+|---|---:|---|---|
+| 1 kΩ | 5 | Candidata pull-up de OE a 3.3 V; verificar pull-down real y VIH | No dimensionada definitivamente |
+| 4.7 kΩ | 5 | Candidata limitadora de base del 2N2222 en montaje con salida buffer adecuada | No conectar a GPIO Jetson sin verificar TXB0108 |
+| 10 kΩ | 5 | Alternativa de polarización/dimensionamiento | De reserva |
+| 47 kΩ | 5 | Candidata de base a masa en etapa de transistor | No dimensionada definitivamente |
+| 100 kΩ | 5 | Alternativa de resistencia de base a masa (valor alto) | De reserva |
+
+Resistencias de pelicula metalica o carbono, 1/4 W, 1% o 5% tolerancia, terminales THT. Las cantidades de 5 son reserva; **no se necesitan 5 por circuito**. Un kit surtido que incluya los cinco valores es adecuado. Especificaciones finales dependen de medir la resistencia a GND del OE de la placa y elegir la etapa de manejo. La Jetson Nano 2GB usa TXB0108 en pines no I2C: Nvidia recomienda pull-up/down externos superiores a 50 kΩ en esos pines, por lo que un transistor/carga de base directo merece un driver/buffer apropiado (o diseno alternativo), no asumir que 4.7k es compatible por si solo. Un 2N2222 **no es** un watchdog ni STOP; si se necesita fail-safe ante congelamiento de Jetson, agregar supervisor hardware independiente.
+
+**Fuentes de dimensionamiento:** PCA9685 NXP datasheet (OE VIH >= 0.7 VDD); Adafruit PCA9685 pinout (OE pulled low by default); NVIDIA Jetson Nano 40-Pin Expansion Header GPIO Usage Considerations (TXB0108).
