@@ -4,11 +4,12 @@
 Compatible con Python 3.6 y con i2c-tools de JetPack 4.6.1.
 NO tiene ninguna funcion para habilitar canales o mover motores.
 
-Conexiones logicas previstas: J6 pin 1 -> VCC 3.3 V,
-J6 pin 3 -> SDA, J6 pin 5 -> SCL, J6 pin 6 -> GND,
-J6 pin 17 -> OE 3.3 V (salidas inhibidas).
-Antes de pruebas de registros: activar STOP de potencia de servos y
-mantener OE en 3.3 V. La placa puede tener el riel V+ cableado.
+Conexiones logicas: J6 pin 1 -> VCC 3.3 V,
+J6 pin 3 -> SDA, J6 pin 5 -> SCL, J6 pin 6 -> GND.
+OE inicialmente conectado a J6 pin17 (3.3 V, PWM inhibido).
+En la prueba experimental posterior OE fue separado de pin17 y
+reportado LOW; esta herramienta NO mide ni cambia OE.
+Mantener STOP de potencia activado durante cualquier prueba de registros.
 """
 
 import argparse
@@ -49,14 +50,27 @@ class I2CToolsBus(object):
 
     @staticmethod
     def _run(argv):
-        result = subprocess.run(
-            argv,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True,
-            timeout=5,
-            check=True,
-        )
+        try:
+            result = subprocess.run(
+                argv,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
+                timeout=5,
+                check=True,
+            )
+        except subprocess.CalledProcessError as exc:
+            # Mostrar la causa real emitida por i2c-tools en lugar de
+            # perder stderr en un traceback de CalledProcessError.
+            details = (exc.stderr or "").strip()
+            if not details:
+                details = "i2c-tools no devolvio un diagnostico por stderr"
+            raise RuntimeError(
+                "Fallo de comunicacion I2C: {} (salida {}). {}".format(
+                    " ".join(argv), exc.returncode, details))
+        except subprocess.TimeoutExpired:
+            raise RuntimeError(
+                "Tiempo de espera I2C agotado: {}".format(" ".join(argv)))
         return result.stdout.strip()
 
     @staticmethod
@@ -84,8 +98,8 @@ class I2CToolsBus(object):
 class SafePCA9685(object):
     """Inspecciona y permite aplicar FULL OFF, pero JAMAS armar salidas.
 
-    Importante: por I2C no se puede comprobar si OE esta realmente en alto.
-    OE debe mantenerse unido fisicamente a VCC de 3.3 V en esta fase.
+    Importante: OE no es verificable por I2C y cambia segun fase
+    experimental. No confiar en registros como sustituto de STOP.
     """
 
     def __init__(self, bus):
@@ -161,7 +175,7 @@ def print_snapshot(snapshot):
     print("TODOS DESHABILITADOS: {}".format(
         "SI" if snapshot["all_off"] else "NO - NO ENERGIZAR SERVOS"
     ))
-    print("OE: NO verificable por I2C; mantener OE -> 3.3 V")
+    print("OE: NO verificable por I2C; comprobar cableado segun protocolo")
     print("IMPORTANTE: FULL OFF no reemplaza un corte fisico de potencia")
 
 
@@ -219,7 +233,7 @@ def main(argv=None):
                 print("ALERTA: no se pudo asegurar FULL OFF: {}".format(
                     backup_exc), file=sys.stderr)
         print("ERROR I2C: {}".format(exc), file=sys.stderr)
-        print("ACTIVAR/CONSERVAR STOP fisico y OE a 3.3 V", file=sys.stderr)
+        print("CONSERVAR STOP fisico activo y verificar I2C antes de potencia", file=sys.stderr)
         return 1
 
 
