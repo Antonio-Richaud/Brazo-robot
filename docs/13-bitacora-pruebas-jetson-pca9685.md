@@ -207,3 +207,23 @@ El usuario pregunta si el fallo de deteccion `0x40` pudo ocurrir por quitar el c
 **Conclusion:** quitar correctamente el jumper OE→J6 pin17 no deberia causar `i2cget Error: Read failed` ni `i2cdetect 40: --`. Que ambos hechos hayan ocurrido despues de manipular la placa justifica revisar posibles desconexiones accidentales en SDA/SCL/GND, errores de pin o cortos transitorios, pero no demuestra causalidad; VCC de 3.3 V fue reportado, sin verificar integridad I2C.
 
 **Proximo paso de bajo riesgo:** con STOP de fuente de servos activado, sin energizar V+, y luego de que Jetson termine de reiniciarse, repetir sondeo a una sola direccion: `i2cdetect -y -r 1 0x40 0x40`. Si sigue `--`, cortar energia de ambos equipos y revisar conectores J6 1→VCC, 3→SDA, 5→SCL, 6→GND con inspeccion y continuidad sin alimentacion. No reinsertar OE a 3.3V para intentar arreglar I2C, ni habilitar la potencia mientras falle comunicacion.
+
+
+## Escaneo posterior al reinicio: PCA9685 sigue sin ACK (3 de noviembre de 2026)
+
+Tras realizar un reinicio de Jetson, el usuario ejecuto nuevamente:
+
+```text
+ssh -T antonio@jetson-nano.local 'i2cdetect -y -r 1 0x40 0x40'
+40: --
+```
+
+**Resultado:** la Jetson reiniciada sigue sin recibir ACK del PCA9685 en `/dev/i2c-1` direccion `0x40`. El reinicio no soluciono el problema.
+
+**Contraste con pruebas efectivamente exitosas:** el 2 de noviembre la Jetson leyo `MODE1=0x01`, `MODE2=0x04`, `PRE_SCALE=0x79`, `FULL OFF 16/16` despues de programar los registros del canal 5 con `GARRA_STAGE_OK: canal 5, 1500 us (307 cuentas)`; asimismo se constato comunicacion y operaciones I2C exitosas el 30-31 de octubre. La comunicacion no siempre ha estado fallando.
+
+**Estado de seguridad:** al no responder el dispositivo, el software no puede asegurar el bloqueo de salidas. OE fue separado del suministro fijo 3.3 V y reportado aproximadamente 0 V; eso podria permitir las salidas si quedaron habilitadas por registros. Mantener STOP presionado, fuente de servos apagada y no ejecutar pulsos, Home ni rutinas.
+
+**Diagnostico siguiente (con todos los equipos sin alimentacion):** revisar ubicacion y sujecion de los cuatro jumpers Jetson J6 pin1->PCA VCC, J6 pin3->PCA SDA, J6 pin5->PCA SCL, J6 pin6->PCA GND. Verificar continuidad de extremo a extremo con multimetro en continuidad, sin energia, e inspeccionar cortos entre pines adyacentes. No mover conexiones ni colocar puntas de continuidad con Jetson encendida. Una foto clara de ambos headers permite comprobar orientacion de pin1 antes de reconectar. El objetivo es restaurar I2C; no se asume dano de la placa.
+
+Nota: La advertencia SSH sobre intercambio de claves postcuantico es independiente del bus I2C y no diagnostica este fallo.
