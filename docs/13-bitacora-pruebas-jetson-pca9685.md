@@ -107,3 +107,27 @@ Tras las instrucciones de medir la tension entre **OE (punta roja)** y **GND (pu
 **Siguiente paso:** mantener STOP activo, con V+ sin energia; Jetson encendida. Sin tocar cables ni energizar fuente, actualizar rama en Jetson con `git pull --ff-only origin feat/jetson-oe-interlock-20261031` (Git antiguo soporta pull pero no switch) y ejecutar `python3 jetson/garra_pulso_laboratorio.py preflight`. Este comando fuerza FULL OFF 16/16, configura frecuencia si es necesario y prepara pulso enmascarado del canal 5; NO habilita PWM ni mueve servos.
 
 **Criterios:** `PREFLIGHT_OK`, `FULL OFF 16/16`; si falla, no activar potencia. El movimiento (`pulse`) permanece PENDIENTE, requiere supervision y STOP al alcance.
+
+
+## Incidencia de comunicacion I2C en preflight y aclaracion sobre 2N2222 (registro: 3 de noviembre de 2026)
+
+**Evidencia entregada por usuario:** Despues de actualizar correctamente la rama de `130d35d` a `f6b1583` con `git pull --ff-only`, la Jetson ejecuto `python3 jetson/garra_pulso_laboratorio.py preflight` y fallo en la primera escritura de `SafePCA9685.disable_all()`:
+
+```text
+subprocess.CalledProcessError: Command '['i2cset', '-y', '1', '0x40', '0xfd', '0x10', 'b']' returned non-zero exit status 1.
+```
+
+- Esta escritura pretendia establecer `ALL_LED_OFF_H[4]=1` / FULL OFF global. El script se detuvo **antes** de programar o habilitar canal 5. El segundo comando `pca9685_safe.py status` no se ejecuto porque la sesion utilizo `set -e`.
+- **No puede concluirse** que los canales sigan todos deshabilitados tras este error. OE previamente fue reportado cercano a 0 V tras separar pin17 y por ello los PWM ya no cuentan con inhibicion de hardware; mantener la alimentacion 5 V de servos **cortada con STOP**.
+- Retirar exclusivamente el cable `OE` no deberia impedir que el PCA9685 responda por I2C. Causas a diagnosticar: VCC logico 3.3 V/GND ausentes o flojos, SDA/SCL accidentalmente desconectados, bus o dispositivo no disponible, o error I2C transitorio. El codigo antiguo capturaba stderr en `subprocess.run` pero mostraba traceback sin el detalle de error devuelto por `i2cset`. No diagnosticar la causa exacta sin prueba.
+- La finalidad del **2N2222** es gobernar OE: transistor NPN apagado deja OE en HIGH a traves de una **resistencia pull-up** de 3.3 V; encendido hunde OE a LOW para permitir salidas seleccionadas por registros. No se usa para alimentar la potencia de servos ni suministrar directamente 3.3 V, y **no reemplaza STOP**. El diseno con GPIO Jetson y TXB0108 requiere validacion de carga y un interlock/watchdog separado si se requiere fail-safe.
+
+**Correccion de software en rama (no ejecutada aun en Jetson):** `jetson/pca9685_safe.py` transforma `subprocess.CalledProcessError` y `TimeoutExpired` en errores descriptivos que incluyen stderr del comando I2C, cubiertos por nuevas pruebas unitarias. El codigo no reintenta escrituras si el bus falla, no habilita PWM y no altera el estado fisico.
+
+**UNICO siguiente diagnostico propuesto (con STOP activado, sin energizar V+; NO tocar cables):**
+
+```bash
+ssh -T -o ConnectTimeout=10 antonio@jetson-nano.local 'i2cget -y 1 0x40 0x00 b'
+```
+
+Lectura MODE1 sin modificar registros. Si devuelve un byte hexadecimal (`0x..`), el chip responde a **esa** lectura; si devuelve error, conservar STOP y revisar alimentacion logica/cables con equipos apagados antes de nuevas operaciones. No iniciar `pulse`, Saludo, Home o Rutina hasta recuperar control de I2C.
