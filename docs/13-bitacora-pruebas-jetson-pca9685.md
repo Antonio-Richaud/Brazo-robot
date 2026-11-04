@@ -170,3 +170,19 @@ Tras registrar fallo de escritura `i2cset ... 0xFD 0x10` y de lectura `i2cget -y
 **Proxima prueba (sin cableado nuevo, sin energizar V+):** escanear exclusivamente la direccion esperada 0x40 en el bus I2C-1 con `i2cdetect -y -r 1 0x40 0x40`. Si muestra `40`, hay respuesta al sondeo SMBus en esa direccion, pero no garantiza lecturas/escrituras de registros. Si muestra `--` o `Error`, no hay respuesta diagnostica suficiente; inspeccionar conexiones con equipos apagados y, por separado, medir SDA/SCL segun siguientes resultados. El escaneo I2C no escribe PWM pero genera trafico de sondeo; no realizarlo con servos energizados ni tratarlo como operacion de seguridad.
 
 **No ejecutar** `preflight`, `pulse`, `Home`, `Saludo`, `Rutina` ni cambiar OE/3.3 V hasta recuperar I2C y confirmar FULL OFF. STOP sigue activado.
+
+
+## Diagnostico 3 nov 2026: 0x40 no responde al escaneo I2C
+
+Comando ejecutado y salida enviada por el usuario:
+
+```text
+ssh -T -o ConnectTimeout=10 antonio@jetson-nano.local 'i2cdetect -y -r 1 0x40 0x40'
+40: --
+```
+
+**Interpretacion:** sondeo SMBus de solo la direccion `0x40` en `/dev/i2c-1`: no se recibio ACK. Combinado con `i2cget ... Error: Read failed` y fallo de `i2cset` ALL_LED_OFF, el PCA9685 actualmente **no se comunica** con Jetson. En contraste, usuario midio aproximadamente **3.3 V entre VCC y GND** de la placa. Esto comprueba alimentacion logica en ese punto, pero no continuidad SDA/SCL, niveles de bus ni funcionamiento interno del chip. No afirmar aun una falla definitiva del modulo.
+
+**Siguiente paso unico recomendado (sin mover ni reconfigurar):** con STOP fisico activado, sin potencia V+ de servos, Jetson encendida, multimetro en V DC medir `SDA` contra `GND` del PCA9685 en estado de reposo, evitando puentear pines con puntas. El bus I2C necesita nivel HIGH por resistencias pull-up durante reposo, tipicamente alrededor de 3.3 V. Lectura sostenida cerca de 0 V apunta a linea retenida LOW o corto; nivel alto no garantiza continuidad I2C. Si resulta incomodo medir pines juntos, detenerse y apagar ambos equipos para inspeccionar continuidad/ubicacion fisica de cables. No permitir `pulse`, `preflight` ni fuente V+ hasta resolver.
+
+**Conexion nominal:** Jetson J6 pin3 = SDA, pin5 = SCL, pin6 = GND, pin1 = VCC 3.3V. OE ya separado de pin17 segun reporte; dejarlo sin reconectar durante diagnostico. La advertencia SSH de intercambio de claves post-cuántico no explica el fallo I2C.
