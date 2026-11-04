@@ -3,6 +3,7 @@
 import io
 import os
 import sys
+import subprocess
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from unittest.mock import patch
@@ -92,6 +93,24 @@ class SafePCA9685Tests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.controller.stage_disabled_pulse(channel, pulse_us)
         self.assertEqual(self.bus.writes, [])
+
+    def test_i2c_write_failure_includes_stderr_details(self):
+        argv = ["i2cset", "-y", "1", "0x40", "0xfd", "0x10", "b"]
+        exc = subprocess.CalledProcessError(
+            1, argv, stderr="Error: Write failed")
+        with patch("pca9685_safe.subprocess.run", side_effect=exc):
+            with self.assertRaises(RuntimeError) as result:
+                I2CToolsBus._run(argv)
+        self.assertIn("Error: Write failed", str(result.exception))
+        self.assertIn("0xfd", str(result.exception))
+
+    def test_i2c_timeout_is_explained(self):
+        argv = ["i2cget", "-y", "1", "0x40", "0x00", "b"]
+        exc = subprocess.TimeoutExpired(argv, 5)
+        with patch("pca9685_safe.subprocess.run", side_effect=exc):
+            with self.assertRaises(RuntimeError) as result:
+                I2CToolsBus._run(argv)
+        self.assertIn("agotado", str(result.exception))
 
     def test_transport_restricts_bus_and_address(self):
         with self.assertRaises(ValueError):
