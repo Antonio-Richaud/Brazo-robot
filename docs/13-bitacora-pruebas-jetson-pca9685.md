@@ -195,3 +195,15 @@ Tras solicitar la medicion de la linea SDA (punta negra GND, roja SDA) con la Je
 La evidencia previa permanece: VCC≈3.3 V reportado; `i2cget -y 1 0x40 0x00 b` devolvio `Error: Read failed`, y `i2cdetect -y -r 1 0x40 0x40` mostro `40: --`. El modulo **aun no responde por I2C**; una linea en HIGH en reposo no demuestra continuidad ni ACK.
 
 **Siguiente comprobacion unica**: mantener STOP activado, fuente V+ de servos desenergizada, Jetson encendida, y medir tension DC de **SCL del PCA9685 respecto a GND**, registrando cifra exacta; normal en reposo cerca de 3.3 V. Evitar puentear pines vecinos con el multimetro. Si SCL es ~3.3 V, seguir diagnosticando continuidad/orden de SDA y SCL con equipos totalmente apagados, sin afirmar que I2C funciona. No ejecutar `preflight`, `pulse`, Home ni rutinas.
+
+
+## Hipotesis revisada: la retirada de OE no deshabilita I2C (3 de noviembre de 2026)
+
+El usuario pregunta si el fallo de deteccion `0x40` pudo ocurrir por quitar el cable de `OE`. Documentacion tecnica confirmada:
+
+- NXP PCA9685 datasheet (https://www.nxp.com/docs/en/data-sheet/PCA9685.pdf): OE es una entrada de **habilitacion asincrona de las 16 salidas PWM**, no controla el receptor I2C, los registros ni la direccion.
+- Adafruit PCA9685 pinouts (https://learn.adafruit.com/16-channel-pwm-servo-driver/pinouts): OE esta conectado a un pull-down en la placa original y es opcional; sin conexion externa mantiene salidas potencialmente habilitadas. Esto NO garantiza el comportamiento de todos los clones ni una parada segura.
+
+**Conclusion:** quitar correctamente el jumper OE→J6 pin17 no deberia causar `i2cget Error: Read failed` ni `i2cdetect 40: --`. Que ambos hechos hayan ocurrido despues de manipular la placa justifica revisar posibles desconexiones accidentales en SDA/SCL/GND, errores de pin o cortos transitorios, pero no demuestra causalidad; VCC de 3.3 V fue reportado, sin verificar integridad I2C.
+
+**Proximo paso de bajo riesgo:** con STOP de fuente de servos activado, sin energizar V+, y luego de que Jetson termine de reiniciarse, repetir sondeo a una sola direccion: `i2cdetect -y -r 1 0x40 0x40`. Si sigue `--`, cortar energia de ambos equipos y revisar conectores J6 1→VCC, 3→SDA, 5→SCL, 6→GND con inspeccion y continuidad sin alimentacion. No reinsertar OE a 3.3V para intentar arreglar I2C, ni habilitar la potencia mientras falle comunicacion.
